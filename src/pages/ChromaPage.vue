@@ -3,8 +3,7 @@
   <AnalysisPageLayout
     title="彩度分析"
     description="OKLCH Chroma チャンネルの詳細分析"
-    :placeholder-icon="Droplets"
-    placeholder-text="画像をアップロードすると彩度のグレースケールマップと分布が表示されます"
+    placeholder-text="画像をアップロードすると彩度分析が表示されます"
   >
     <template #default="{ colorAwareImageData }">
       <div class="space-y-4">
@@ -45,7 +44,6 @@ gradient="linear-gradient(to right, oklch(0.55 0 0), oklch(0.84 0.4 145))"
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Droplets } from 'lucide-vue-next'
 import type { ColorAwareImageData } from '@/domain/colorSpace'
 import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
 import { Legend, InfoTooltip, Toggle, AnalysisSpinner, AnalysisErrorCard } from '@/components/ui'

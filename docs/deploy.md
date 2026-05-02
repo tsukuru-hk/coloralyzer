@@ -27,7 +27,7 @@ README の想定どおり。無料枠が広く、Git 連携で自動デプロイ
 ```bash
 npm install -g wrangler
 npm run build
-wrangler pages deploy dist --project-name=perceptual-color-analyzer
+wrangler pages deploy dist --project-name=coloralyzer
 ```
 
 初回は `wrangler login` で Cloudflare にログインする。
@@ -50,11 +50,11 @@ wrangler pages deploy dist --project-name=perceptual-color-analyzer
 
 ### GitHub Pages の例
 
-リポジトリ名が `perceptual-color-analyzer` の場合、サブパス公開になるので `vite.config.ts` に次を追加：
+リポジトリ名が `coloralyzer` の場合、サブパス公開になるので `vite.config.ts` に次を追加：
 
 ```ts
 export default defineConfig({
-  base: '/perceptual-color-analyzer/',
+  base: '/coloralyzer/',
   // ...
 })
 ```

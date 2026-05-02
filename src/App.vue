@@ -1,5 +1,8 @@
 <template>
   <!-- アプリシェル：左ナビ + メイン（ルートごとのページ）+ グローバル通知 -->
+  <!-- ローンチアニメーション（セッション初回のみ） -->
+  <LaunchScreen v-if="showLaunch" @done="showLaunch = false" />
+
   <div class="flex min-h-screen bg-background">
     <!-- ナビゲーション中のプログレスバー -->
     <div
@@ -24,6 +27,10 @@
 import { ref, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { Sidebar, Toaster, ErrorBoundary } from '@/components/ui'
+import LaunchScreen from '@/components/ui/LaunchScreen.vue'
+
+const showLaunch = ref(!sessionStorage.getItem('launched'))
+if (showLaunch.value) sessionStorage.setItem('launched', '1')
 
 const navigating = ref(false)
 const router = useRouter()

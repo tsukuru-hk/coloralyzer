@@ -3,7 +3,6 @@
   <AnalysisPageLayout
     title="色相分析"
     description="色相環上のガマット分布と各色相の支配率を可視化"
-    :placeholder-icon="Rainbow"
     placeholder-text="画像をアップロードすると色相の分布が表示されます"
     :split-pane="true"
     pane-height="h-[calc(100vh-13rem)]"
@@ -55,7 +54,6 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref } from 'vue'
-import { Rainbow } from 'lucide-vue-next'
 import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
 import { AnalysisSpinner, AnalysisErrorCard, Toggle } from '@/components/ui'
 import { LightnessBandToggle } from '@/features/hue-analysis'

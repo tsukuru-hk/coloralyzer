@@ -3,8 +3,7 @@
   <AnalysisPageLayout
     title="色分布"
     description="画像の使用色をパレットとして抽出し、色グループと比率を可視化"
-    :placeholder-icon="BarChart3"
-    placeholder-text="画像をアップロードするとカラーパレットが表示されます"
+    placeholder-text="画像をアップロードすると色分布が表示されます"
   >
     <template #default>
       <div class="space-y-4">
@@ -63,7 +62,6 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, reactive, shallowRef, watch } from 'vue'
-import { BarChart3 } from 'lucide-vue-next'
 import type { ColorClusterResult } from '@/domain/colorCluster'
 import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
 import { InfoTooltip, AnalysisSpinner, AnalysisErrorCard } from '@/components/ui'

@@ -2,8 +2,7 @@
   <AnalysisPageLayout
     title="3D ガマット"
     description="OKLCH 色空間での 3D ポイントクラウド可視化"
-    :placeholder-icon="Box"
-    placeholder-text="画像をアップロードすると OKLCH 色空間上の 3D ガマットマップが表示されます"
+    placeholder-text="画像をアップロードすると3Dマッピングが表示されます"
     :split-pane="true"
     pane-height="h-[calc(100vh-13rem)]"
   >
@@ -38,7 +37,6 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, watch } from 'vue'
-import { Box } from 'lucide-vue-next'
 import type { ColorAwareImageData } from '@/domain/colorSpace'
 import { AnalysisPageLayout, AnalysisSpinner, AnalysisErrorCard } from '@/components/ui'
 import { isAnalysisError } from '@/types/analysis'

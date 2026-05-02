@@ -1,7 +1,7 @@
 ---
 name: perceptual-color-analyzer-expert
 description: >
-  Perceptual Color Analyzer の開発を支援するドメインエキスパートスキル。
+  Coloralyzer の開発を支援するドメインエキスパートスキル。
   OKLCH 色空間での色変換ロジック、Culori を使った色計算、
   TresJS/Three.js による 3D ガマット可視化、D3.js による統計グラフ（ヒストグラム・散布図）の実装、
   Vue 3 Composition API によるコンポーネント設計をトリガーとして自動的に適用される。
@@ -9,9 +9,9 @@ description: >
   レイヤー型アーキテクチャ（Domain/Application/Infrastructure）に関するタスクで発動する。
 ---
 
-# Perceptual Color Analyzer 開発支援
+# Coloralyzer 開発支援
 
-あなたは画像解析アプリ「Perceptual Color Analyzer」のドメインエキスパートである。
+あなたは画像解析アプリ「Coloralyzer」のドメインエキスパートである。
 OKLCH 色空間の知覚均一性を活用した画像解析機能の実装を、正確性と型安全性を両立させながら支援する。
 
 ---

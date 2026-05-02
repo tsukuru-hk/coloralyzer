@@ -54,7 +54,8 @@
         <span class="text-[10px] leading-tight">画像追加</span>
         <input
           type="file"
-          accept="image/*"
+          accept=".jpg,.jpeg,.png,.webp"
+          multiple
           class="hidden"
           @change="onFileChange"
         />
@@ -69,21 +70,47 @@
 import { ref } from 'vue'
 import { X, Plus } from 'lucide-vue-next'
 import { useImageStore } from '@/composables/useImageStore'
+import { useToast } from '@/composables/useToast'
 import { cn } from '@/lib/utils'
 
 const { images, selectedId, canAddMore, addImage, removeImage, selectImage } = useImageStore()
+const { toast } = useToast()
 
 const dragOver = ref(false)
 
-function onFileChange(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  if (file) addImage(file)
-  ;(event.target as HTMLInputElement).value = ''
+/**
+ * 受け取ったファイル群を順次 `addImage` に流す。
+ * - 直列処理は `loadProgress` の競合を避けるためと、`canAddMore` をファイル単位で再評価するため。
+ * - 上限に達したら残りファイルは処理せず、一度だけトーストで通知する。
+ */
+async function handleFiles(files: File[]): Promise<void> {
+  let skipped = 0
+  for (const file of files) {
+    if (!canAddMore.value) {
+      skipped = files.length - files.indexOf(file)
+      break
+    }
+    await addImage(file)
+  }
+  if (skipped > 0) {
+    toast({
+      title: `${skipped} 件を追加できませんでした`,
+      description: '画像枚数の上限に達しています。',
+      variant: 'info',
+    })
+  }
 }
 
-function onDrop(event: DragEvent) {
+function onFileChange(event: Event): void {
+  const input = event.target as HTMLInputElement
+  const files = input.files ? Array.from(input.files) : []
+  input.value = ''
+  if (files.length > 0) void handleFiles(files)
+}
+
+function onDrop(event: DragEvent): void {
   dragOver.value = false
-  const file = event.dataTransfer?.files?.[0]
-  if (file) addImage(file)
+  const files = event.dataTransfer?.files
+  if (files && files.length > 0) void handleFiles(Array.from(files))
 }
 </script>

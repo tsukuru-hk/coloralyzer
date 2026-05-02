@@ -1,4 +1,4 @@
-# Perceptual Color Analyzer
+# Coloralyzer
 
 知覚的な色空間 **OKLCH** を用いて、画像の彩度（Chroma）・明度（Lightness）を解析・可視化する Web アプリです。
 

@@ -3,21 +3,27 @@
   <aside class="flex h-screen w-16 flex-col border-r border-border bg-card shrink-0">
     <!-- アプリマーク -->
     <div class="flex h-14 items-center justify-center border-b border-border">
-      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground text-sm font-bold">
-        P
-      </div>
+      <img src="@/assets/app-icon.png" alt="Coloralyzer" class="h-8 w-8 rounded-lg" />
     </div>
     <!-- 主要ルート（分析ページ / デザインシステム） -->
-    <nav class="flex-1 flex flex-col gap-1 p-1 pt-2">
+    <nav ref="navRef" class="relative flex-1 flex flex-col gap-1 p-1 pt-2">
+      <!-- スライドするアクティブハイライト -->
+      <div
+        v-if="highlightStyle"
+        class="absolute left-1 right-1 rounded-lg bg-primary pointer-events-none will-change-transform"
+        :style="highlightStyle"
+      />
       <template v-for="(item, idx) in items" :key="item.type === 'divider' ? `divider-${idx}` : item.path">
         <div v-if="item.type === 'divider'" class="my-1 border-t border-border" />
         <router-link
           v-else
+          :ref="(el) => setItemRef(item.path, el as HTMLElement | null)"
           :to="item.path"
+          :aria-label="item.label"
           :class="cn(
-            'flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 transition-colors',
+            'relative z-[1] flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 transition-colors',
             isActive(item.path)
-              ? 'bg-primary/10 text-primary'
+              ? 'text-white'
               : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
           )"
           @mouseenter="prefetch(item.path)"
@@ -36,10 +42,50 @@
 import { useRoute } from 'vue-router'
 import { LayoutDashboard, Droplets, Sun, Rainbow, Box, BarChart3 } from 'lucide-vue-next'
 import type { Component } from 'vue'
+import { ref, watch, nextTick, onMounted, type CSSProperties } from 'vue'
 import { cn } from '@/lib/utils'
 import { routeImports, type RoutePath } from '@/router'
 
 const route = useRoute()
+const navRef = ref<HTMLElement | null>(null)
+const highlightStyle = ref<CSSProperties | null>(null)
+
+/** 各ナビ項目の DOM 要素を保持 */
+const itemRefs = new Map<RoutePath, HTMLElement>()
+function setItemRef(path: RoutePath, el: unknown) {
+  // router-link はコンポーネントなので $el で実 DOM を取得
+  const dom = (el as { $el?: HTMLElement })?.$el ?? (el as HTMLElement | null)
+  if (dom) itemRefs.set(path, dom)
+  else itemRefs.delete(path)
+}
+
+/** アクティブ項目の位置にハイライトを移動 */
+function updateHighlight() {
+  const activePath = route.path as RoutePath
+  const el = itemRefs.get(activePath)
+  const nav = navRef.value
+  if (!el || !nav || typeof el.getBoundingClientRect !== 'function') {
+    highlightStyle.value = null
+    return
+  }
+  const navRect = nav.getBoundingClientRect()
+  const elRect = el.getBoundingClientRect()
+  const y = elRect.top - navRect.top
+  highlightStyle.value = {
+    top: '0',
+    height: `${elRect.height}px`,
+    transform: `translateY(${y}px)`,
+    transition: 'transform 300ms ease-out',
+  }
+}
+
+onMounted(() => {
+  nextTick(updateHighlight)
+})
+
+watch(() => route.path, () => {
+  nextTick(updateHighlight)
+})
 
 /** ホバー時にルートチャンクを事前ロード（1パスにつき1回のみ） */
 const prefetched = new Set<RoutePath>()

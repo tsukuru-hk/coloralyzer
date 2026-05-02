@@ -3,8 +3,7 @@
   <AnalysisPageLayout
     title="明度分析"
     description="OKLCH Lightness チャンネルの詳細分析"
-    :placeholder-icon="Sun"
-    placeholder-text="画像をアップロードすると明度のグレースケールマップと分布が表示されます"
+    placeholder-text="画像をアップロードすると明度分析が表示されます"
   >
     <template #default="{ colorAwareImageData }">
       <div v-if="selectedImage" class="space-y-4">
@@ -45,10 +44,9 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Sun } from 'lucide-vue-next'
 import type { ColorAwareImageData } from '@/domain/colorSpace'
 import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
-import { Legend, InfoTooltip, Toggle, AnalysisSpinner, AnalysisErrorCard } from '@/components/ui'
+import { Legend, InfoTooltip, Toggle, AnalysisErrorCard, AnalysisSpinner } from '@/components/ui'
 import { isAnalysisError } from '@/types/analysis'
 import { LightnessMapPanel, LightnessHistogramPanel } from '@/features/lightness-map'
 import { useImageStore } from '@/composables/useImageStore'
