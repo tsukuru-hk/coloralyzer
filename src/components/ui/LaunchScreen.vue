@@ -44,10 +44,10 @@ const durationCss = `${DURATION}ms`
 const FADE_MS = 800
 const fadeCss = `${FADE_MS}ms`
 /**
- * Lottie ロードが無反応になった場合に備えた最大待機時間。
- * これを過ぎても `complete` が発火しなければ強制的にプログレスへ移行する（フェイルクローズド）。
+ * Lottie がロードすら完了しないときに UI が永続するのを避けるための最大待機時間。
+ * DOM 展開が確認できたらこのタイマーは解除し、アニメの長さに関わらず `complete` を待つ。
  */
-const LOAD_TIMEOUT_MS = 2000
+const LOAD_TIMEOUT_MS = 3000
 /** 100% 到達後に一瞬「100%」を見せてから閉じるまでの余韻 */
 const COMPLETION_HOLD_MS = 150
 
@@ -123,6 +123,13 @@ function beginProgress(): void {
 
 const lottie = useLottie(lottieRef, animationData, {
   loop: false,
+  // ロードが確認できたらタイムアウトによる打ち切りを解除し、アニメを最後まで再生させる
+  onReady: () => {
+    if (fallbackTimer) {
+      clearTimeout(fallbackTimer)
+      fallbackTimer = null
+    }
+  },
   onComplete: beginProgress,
   onError: beginProgress,
 })

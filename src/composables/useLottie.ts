@@ -15,6 +15,11 @@ export interface UseLottieOptions {
   autoplay?: boolean
   /** レンダラー（既定: `'svg'`） */
   renderer?: 'svg' | 'canvas' | 'html'
+  /**
+   * アニメデータが DOM に展開されて再生可能になった時点で呼ばれる。
+   * ロード成功の合図として使える（`DOMLoaded` イベント）。
+   */
+  onReady?: () => void
   /** アニメーション完了時に呼ばれるコールバック */
   onComplete?: () => void
   /** ロード失敗時に呼ばれるコールバック（`data_failed` / ロード例外） */
@@ -50,6 +55,7 @@ export function useLottie(
     loop = true,
     autoplay = true,
     renderer = 'svg',
+    onReady,
     onComplete,
     onError,
   } = options
@@ -69,6 +75,9 @@ export function useLottie(
         autoplay,
         animationData: data,
       })
+      if (onReady) {
+        instance.addEventListener('DOMLoaded', () => onReady())
+      }
       if (onComplete) {
         instance.addEventListener('complete', () => onComplete())
       }
