@@ -1,9 +1,9 @@
 <template>
   <!-- グローバル左ナビ：ロゴ + ルートリンク一覧 -->
-  <aside class="flex h-screen w-16 flex-col border-r border-border bg-card shrink-0">
+  <aside class="flex h-screen w-16 flex-col border-r-2 border-border bg-card shrink-0">
     <!-- アプリマーク -->
-    <div class="flex h-14 items-center justify-center border-b border-border">
-      <img src="@/assets/app-icon.png" alt="Coloralyzer" class="h-8 w-8 rounded-lg" />
+    <div class="flex h-14 items-center justify-center border-b-2 border-border">
+      <img src="@/assets/app-icon.png" alt="Coloralyzer" class="h-11 w-11 rounded-md" />
     </div>
     <!-- 主要ルート（分析ページ / デザインシステム） -->
     <nav ref="navRef" class="relative flex-1 flex flex-col gap-1 p-1 pt-2">
@@ -14,7 +14,7 @@
         :style="highlightStyle"
       />
       <template v-for="(item, idx) in items" :key="item.type === 'divider' ? `divider-${idx}` : item.path">
-        <div v-if="item.type === 'divider'" class="my-1 border-t border-border" />
+        <div v-if="item.type === 'divider'" class="my-1 border-t-2 border-border" />
         <router-link
           v-else
           :ref="(el) => setItemRef(item.path, el as HTMLElement | null)"

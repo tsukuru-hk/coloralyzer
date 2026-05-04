@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #f8fafc;
+  --font-sans: 'Zen Kaku Gothic New', system-ui, sans-serif;
+  --color-background: #F1F4F8;
   --color-foreground: #0f172a;
   --color-card: #ffffff;
   --color-card-foreground: #0f172a;
@@ -15,7 +16,7 @@
   --color-accent-foreground: #1a2e05;
   --color-destructive: #ef4444;
   --color-destructive-foreground: #ffffff;
-  --color-border: #e2e8f0;
+  --color-border: #DCE2E2;
   --color-ring: #3b82f6;
   --color-success: #22c55e;
   --color-success-foreground: #ffffff;

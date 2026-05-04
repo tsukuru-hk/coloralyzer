@@ -5,6 +5,9 @@
     description="OKLCH Lightness チャンネルの詳細分析"
     placeholder-text="画像をアップロードすると明度分析が表示されます"
   >
+    <template #title-icon>
+      <img src="@/assets/Lightness-icon.png" alt="" class="h-14 w-14" />
+    </template>
     <template #default="{ colorAwareImageData }">
       <div v-if="selectedImage" class="space-y-4">
         <div>

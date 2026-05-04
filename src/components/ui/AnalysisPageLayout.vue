@@ -2,11 +2,18 @@
   <!-- 分析ページ共通レイアウト：見出し → 画像投入 or ギャラリー付き分析エリア -->
   <div>
     <!-- ページ見出し -->
-    <h1 class="text-2xl font-bold text-foreground">{{ title }}</h1>
-    <p v-if="description" class="mt-1 text-sm text-muted-foreground">{{ description }}</p>
+    <div class="flex items-center gap-3">
+      <div v-if="slots['title-icon']" class="flex h-14 w-14 shrink-0 items-center justify-center">
+        <slot name="title-icon" />
+      </div>
+      <div>
+        <h1 class="text-2xl font-bold text-foreground">{{ title }}</h1>
+        <p v-if="description" class="mt-1 text-sm text-muted-foreground">{{ description }}</p>
+      </div>
+    </div>
 
     <!-- 分析エリア：画像が1枚以上あるとき — タブバー + 2カラム（オリジナル / 分析結果） -->
-    <div v-if="images.length > 0" class="mt-6 overflow-hidden rounded-xl border border-border">
+    <div v-if="images.length > 0" class="mt-6 overflow-hidden rounded-xl border-2 border-border">
       <ImageGalleryBar />
       <!-- Split Pane モード：ドラッグで比率調整可能 -->
       <SplitPane v-if="selectedImage && splitPane" :default-ratio="0.3" :min-ratio="0.15" :max-ratio="0.85" :class="[paneHeight, 'bg-card']">

@@ -56,8 +56,20 @@
       <div>
         <h3 class="mb-2 text-sm font-medium text-muted-foreground">色分布</h3>
         <AnalysisErrorCard v-if="clusterError" :message="clusterErrorMsg" @retry="retryAnalysis(imageId, 'colorClustering')" />
-        <div v-else-if="clusterData && row2Visible">
-          <ClusterBubbleChart :key="imageId" :data="clusterData" :height="320" />
+        <div v-else-if="clusterData && row2Visible" class="space-y-3">
+          <ClusterBubbleChart :key="imageId" :data="clusterData" :height="280" />
+          <div class="flex h-5 w-full overflow-hidden rounded-md border border-border">
+            <div
+              v-for="cluster in sortedClusters"
+              :key="cluster.id"
+              class="h-full transition-all duration-500 ease-in-out"
+              :style="{
+                flex: '0 0 ' + cluster.ratio * 100 + '%',
+                backgroundColor: `rgb(${cluster.centroidRgb.r},${cluster.centroidRgb.g},${cluster.centroidRgb.b})`,
+                minWidth: cluster.ratio > 0 ? '2px' : '0',
+              }"
+            />
+          </div>
         </div>
         <AnalysisSpinner v-else />
       </div>
@@ -186,6 +198,12 @@ const clusterData = computed<ColorClusterResult | null>(() => {
   const r = rawClusterResult.value
   return r && !isAnalysisError(r) ? r : null
 })
+
+const sortedClusters = computed(() =>
+  clusterData.value
+    ? [...clusterData.value.clusters].sort((a, b) => b.ratio - a.ratio)
+    : [],
+)
 
 // ─── Error 状態 ───
 
