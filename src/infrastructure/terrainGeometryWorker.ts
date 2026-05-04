@@ -396,8 +396,8 @@ self.onmessage = (e: MessageEvent<TerrainWorkerRequest>) => {
   }
 
   // Transferable で高速転送
-  const transfers: ArrayBuffer[] = [resp.positions.buffer, resp.colors.buffer]
-  if (resp.dotPositions) transfers.push(resp.dotPositions.buffer)
-  if (resp.dotColors) transfers.push(resp.dotColors.buffer)
+  const transfers: ArrayBuffer[] = [resp.positions.buffer as ArrayBuffer, resp.colors.buffer as ArrayBuffer]
+  if (resp.dotPositions) transfers.push(resp.dotPositions.buffer as ArrayBuffer)
+  if (resp.dotColors) transfers.push(resp.dotColors.buffer as ArrayBuffer)
   self.postMessage(resp, transfers)
 }

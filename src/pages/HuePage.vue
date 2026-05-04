@@ -99,7 +99,7 @@ const HUE_NAMES: [number, string][] = [
   [255, '青紫'], [285, '紫'], [315, '赤紫'], [345, '赤'],
 ]
 
-const dominantHue = computed(() => {
+const _dominantHue = computed(() => {
   const sectors = hueResult.value?.sectors
   if (!sectors || sectors.length === 0) return null
   const max = sectors.reduce((a, b) => (a.ratio > b.ratio ? a : b))
