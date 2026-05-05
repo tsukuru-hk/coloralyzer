@@ -2,8 +2,36 @@
   <!-- グローバル左ナビ：ロゴ + ルートリンク一覧 -->
   <aside class="flex h-screen w-16 flex-col border-r-2 border-border bg-card shrink-0">
     <!-- アプリマーク -->
-    <div class="flex h-14 items-center justify-center border-b-2 border-border">
-      <img src="@/assets/app-icon.png" alt="Coloralyzer" class="h-11 w-11 rounded-md" />
+    <div
+      class="relative flex h-14 items-center justify-center border-b-2 border-border"
+      @mouseenter="playLottie"
+      @mouseleave="stopLottie"
+    >
+      <img
+        v-show="!isLottieActive"
+        src="@/assets/app-icon.png"
+        alt="Coloralyzer"
+        class="h-11 w-11 rounded-md"
+      />
+      <div
+        v-show="isLottieActive"
+        ref="lottieContainer"
+        class="h-11 w-11 rounded-md"
+      />
+      <!-- 吹き出し -->
+      <div class="absolute left-full top-1/2 -translate-y-1/2 ml-3 z-50 pointer-events-none">
+        <Transition name="bubble">
+          <div
+            v-if="isLottieActive"
+            class="relative rounded-lg bg-card border-2 border-border px-3 py-2 shadow-lg whitespace-nowrap pointer-events-auto"
+          >
+            <!-- 左向き三角 -->
+            <div class="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[8px] border-r-border" />
+            <div class="absolute -left-[6px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[7px] border-r-card" />
+            <span class="text-xs text-foreground">{{ bubbleTypedText }}</span>
+          </div>
+        </Transition>
+      </div>
     </div>
     <!-- 主要ルート（分析ページ / デザインシステム） -->
     <nav ref="navRef" class="relative flex-1 flex flex-col gap-1 p-1 pt-2">
@@ -40,15 +68,114 @@
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router'
-import { LayoutDashboard, Droplets, Sun, Rainbow, Box, BarChart3 } from 'lucide-vue-next'
+import { LayoutGrid, Droplets, Sun, Target, Box, BarChart3 } from 'lucide-vue-next'
 import type { Component } from 'vue'
-import { ref, watch, nextTick, onMounted, type CSSProperties } from 'vue'
+import { ref, computed, inject, watch, nextTick, onMounted, onBeforeUnmount, type CSSProperties, type Ref } from 'vue'
 import { cn } from '@/lib/utils'
 import { routeImports, type RoutePath } from '@/router'
+import lottie, { type AnimationItem } from 'lottie-web'
+import animationData from '@/assets/animations/LottieAnimeAppAnime.json'
 
 const route = useRoute()
 const navRef = ref<HTMLElement | null>(null)
 const highlightStyle = ref<CSSProperties | null>(null)
+
+/* --- Lottie アプリアイコン --- */
+const lottieContainer = ref<HTMLElement | null>(null)
+const isLottieActive = ref(false)
+let lottieAnim: AnimationItem | null = null
+
+/* --- 吹き出しタイプライター --- */
+const bubbleMessage = '左メニューから分析方法を選べるよ'
+const bubbleTypedCount = ref(0)
+let bubbleTimer: ReturnType<typeof setInterval> | null = null
+
+const bubbleTypedText = computed(() => bubbleMessage.slice(0, bubbleTypedCount.value))
+
+function startBubbleTypewriter() {
+  bubbleTypedCount.value = 0
+  const totalChars = bubbleMessage.length
+  const interval = Math.max(250 / totalChars, 20)
+  bubbleTimer = setInterval(() => {
+    bubbleTypedCount.value++
+    if (bubbleTypedCount.value >= totalChars && bubbleTimer) {
+      clearInterval(bubbleTimer)
+      bubbleTimer = null
+    }
+  }, interval)
+}
+
+function stopBubbleTypewriter() {
+  if (bubbleTimer) {
+    clearInterval(bubbleTimer)
+    bubbleTimer = null
+  }
+  bubbleTypedCount.value = 0
+}
+
+function playLottie() {
+  isLottieActive.value = true
+  startBubbleTypewriter()
+  if (lottieAnim) {
+    lottieAnim.goToAndPlay(0)
+    return
+  }
+  nextTick(() => {
+    if (!lottieContainer.value) return
+    lottieAnim = lottie.loadAnimation({
+      container: lottieContainer.value,
+      renderer: 'svg',
+      loop: true,
+      autoplay: true,
+      animationData,
+    })
+  })
+}
+
+function stopLottie() {
+  isLottieActive.value = false
+  stopBubbleTypewriter()
+  if (lottieAnim) {
+    lottieAnim.stop()
+  }
+}
+
+onBeforeUnmount(() => {
+  stopBubbleTypewriter()
+  if (autoPlayTimer) clearTimeout(autoPlayTimer)
+  if (autoHideTimer) clearTimeout(autoHideTimer)
+  if (lottieAnim) {
+    lottieAnim.destroy()
+    lottieAnim = null
+  }
+})
+
+/* --- 初回自動再生（ローンチアニメ完了後） --- */
+const launchDone = inject<Ref<boolean>>('launchDone', ref(true))
+let autoPlayTimer: ReturnType<typeof setTimeout> | null = null
+let autoHideTimer: ReturnType<typeof setTimeout> | null = null
+
+function autoPlayOnce() {
+  autoPlayTimer = setTimeout(() => {
+    playLottie()
+    autoHideTimer = setTimeout(() => {
+      stopLottie()
+    }, 3000)
+  }, 2000)
+}
+
+// ローンチアニメがある場合は完了を待って自動再生、ない場合は即座に発火
+if (launchDone.value) {
+  // ローンチアニメなし（2回目以降のセッション）→ マウント後に自動再生
+  onMounted(() => autoPlayOnce())
+} else {
+  const stopWatch = watch(launchDone, (done) => {
+    if (done) {
+      stopWatch()
+      autoPlayOnce()
+    }
+  })
+}
 
 /** 各ナビ項目の DOM 要素を保持 */
 const itemRefs = new Map<RoutePath, HTMLElement>()
@@ -107,10 +234,10 @@ type NavItem =
     }
 
 const items: NavItem[] = [
-  { path: '/', label: '総合分析', shortLabel: '総合', icon: LayoutDashboard },
+  { path: '/', label: '総合分析', shortLabel: '総合', icon: LayoutGrid },
   { path: '/lightness', label: '明度 (Lightness)', shortLabel: '明度', icon: Sun },
   { path: '/chroma', label: '彩度 (Chroma)', shortLabel: '彩度', icon: Droplets },
-  { path: '/hue', label: '色相 (Hue)', shortLabel: '色相', icon: Rainbow },
+  { path: '/hue', label: '色相 (Hue)', shortLabel: '色相', icon: Target },
   { path: '/gamut', label: '3D ガマット', shortLabel: '3D', icon: Box },
   { path: '/distribution', label: '色分布', shortLabel: '色分布', icon: BarChart3 },
 ]
@@ -119,3 +246,22 @@ function isActive(path: RoutePath): boolean {
   return route.path === path
 }
 </script>
+
+<style scoped>
+.bubble-enter-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.bubble-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.bubble-enter-from,
+.bubble-leave-to {
+  opacity: 0;
+  transform: translateX(-6px);
+}
+.bubble-enter-to,
+.bubble-leave-from {
+  opacity: 1;
+  transform: translateX(0);
+}
+</style>

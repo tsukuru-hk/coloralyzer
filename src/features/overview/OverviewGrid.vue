@@ -11,14 +11,14 @@
         <h3 class="mb-2 text-sm font-medium text-muted-foreground">明度グレースケール</h3>
         <AnalysisErrorCard v-if="lightnessError" :message="lightnessErrorMsg" @retry="retryAnalysis(imageId, 'lightnessMap')" />
         <ImageCanvas v-else-if="lightnessMapData" :image-data="lightnessMapData" />
-        <AnalysisSpinner v-else />
+        <AnalysisSpinner v-else class="aspect-square" />
       </div>
 
       <div>
         <h3 class="mb-2 text-sm font-medium text-muted-foreground">彩度グレースケール</h3>
         <AnalysisErrorCard v-if="chromaError" :message="chromaErrorMsg" @retry="retryAnalysis(imageId, 'chromaMap')" />
         <ImageCanvas v-else-if="chromaMapData" :image-data="chromaMapData" />
-        <AnalysisSpinner v-else />
+        <AnalysisSpinner v-else class="aspect-square" />
       </div>
     </div>
 
@@ -35,7 +35,7 @@
             class="h-full w-full"
           />
         </div>
-        <AnalysisSpinner v-else />
+        <AnalysisSpinner v-else class="aspect-square" />
       </div>
 
       <div>
@@ -50,7 +50,7 @@
             :show-toolbar="false"
           />
         </div>
-        <AnalysisSpinner v-else />
+        <AnalysisSpinner v-else class="aspect-square" />
       </div>
 
       <div>
@@ -71,7 +71,7 @@
             />
           </div>
         </div>
-        <AnalysisSpinner v-else />
+        <AnalysisSpinner v-else class="aspect-square" />
       </div>
     </div>
   </div>

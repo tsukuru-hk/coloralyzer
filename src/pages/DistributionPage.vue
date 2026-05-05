@@ -2,9 +2,23 @@
   <!-- ページ：色分布 — カラーパレット抽出とバブルパッキング可視化 -->
   <AnalysisPageLayout
     title="色分布"
-    description="画像の使用色をパレットとして抽出し、色グループと比率を可視化"
+    description="使われている色をパレットに抽出し、メイン・サブ・アクセントなど色の面積比を確認できます"
     placeholder-text="画像をアップロードすると色分布が表示されます"
   >
+    <template #title-icon>
+      <img src="@/assets/Distribution-icon.png" alt="" class="h-14 w-14" />
+    </template>
+    <template #explanation="{ close }">
+      <ExplanationContent
+        title="色分布"
+        :sections="explanationSections"
+        @close="close"
+      >
+        <template #icon>
+          <img src="@/assets/Distribution-icon.png" alt="" class="h-8 w-8" />
+        </template>
+      </ExplanationContent>
+    </template>
     <template #default>
       <div class="space-y-4">
         <div>
@@ -53,7 +67,7 @@
               <ClusterRatioBar :clusters="displayedResult.clusters" />
             </div>
           </template>
-          <AnalysisSpinner v-else />
+          <AnalysisSpinner v-else class="aspect-square" />
         </div>
       </div>
     </template>
@@ -64,7 +78,8 @@
 import { computed, defineAsyncComponent, reactive, shallowRef, watch } from 'vue'
 import type { ColorClusterResult } from '@/domain/colorCluster'
 import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
-import { InfoTooltip, AnalysisSpinner, AnalysisErrorCard } from '@/components/ui'
+import { InfoTooltip, AnalysisSpinner, AnalysisErrorCard, ExplanationContent } from '@/components/ui'
+import type { ExplanationSection } from '@/components/ui'
 import { ClusterRatioBar } from '@/features/color-cluster'
 import { isAnalysisError } from '@/types/analysis'
 import { useImageStore } from '@/composables/useImageStore'
@@ -79,6 +94,21 @@ const MIN_MANUAL_PALETTE = 2
 const MAX_PALETTE = 60
 
 const { images, selectedImage, getAnalysis, retryAnalysis, invalidateAnalysis } = useImageStore()
+
+const explanationSections: ExplanationSection[] = [
+  {
+    label: '色分布とは',
+    description: '画像から��表的な色をクラスタリングで抽出し、それぞれの色��どのくらいの面積を��めているかを可視化する機能です。',
+  },
+  {
+    label: 'カラーパレットとは',
+    description: '画像内の色をグループ化し、メインカラー・サブ���ラー・アク���ントカラーなどとして抽出したものです。パレットサイズはスライダーで調整できます��',
+  },
+  {
+    label: 'バブルチャートとは',
+    description: '各色の面積比を円の大きさで表現した図です。大きな円ほど画像内で多く使われている色を示します。色同士の関係を直感的に比較できます。',
+  },
+]
 
 /** 選択中の画像ID（未選択時は空文字列） */
 const imageId = computed(() => selectedImage.value?.id ?? '')

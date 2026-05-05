@@ -1,7 +1,7 @@
 <template>
   <!-- アプリシェル：左ナビ + メイン（ルートごとのページ）+ グローバル通知 -->
   <!-- ローンチアニメーション（セッション初回のみ） -->
-  <LaunchScreen v-if="showLaunch" @done="showLaunch = false" />
+  <LaunchScreen v-if="showLaunch" @done="onLaunchDone" />
 
   <div class="flex min-h-screen bg-background">
     <!-- ナビゲーション中のプログレスバー -->
@@ -18,19 +18,31 @@
       <ErrorBoundary>
         <router-view />
       </ErrorBoundary>
+      <footer class="mt-12 pb-4 text-center text-xs text-muted-foreground">
+        © 2026 Coloralyzer. All rights reserved.
+      </footer>
     </main>
     <Toaster />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onBeforeUnmount } from 'vue'
+import { ref, provide, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { Sidebar, Toaster, ErrorBoundary } from '@/components/ui'
 import LaunchScreen from '@/components/ui/LaunchScreen.vue'
 
 const showLaunch = ref(!sessionStorage.getItem('launched'))
 if (showLaunch.value) sessionStorage.setItem('launched', '1')
+
+/** ローンチアニメ完了フラグ — Sidebar がこれを inject して初回吹き出しを制御する */
+const launchDone = ref(!showLaunch.value)
+provide('launchDone', launchDone)
+
+function onLaunchDone() {
+  showLaunch.value = false
+  launchDone.value = true
+}
 
 const navigating = ref(false)
 const router = useRouter()

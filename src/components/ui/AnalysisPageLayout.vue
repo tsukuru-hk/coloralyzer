@@ -7,10 +7,28 @@
         <slot name="title-icon" />
       </div>
       <div>
-        <h1 class="text-2xl font-bold text-foreground">{{ title }}</h1>
+        <div class="flex items-center gap-2.5">
+          <h1 class="text-2xl font-bold text-foreground">{{ title }}</h1>
+          <button
+            v-if="slots.explanation"
+            class="inline-flex items-center gap-1 rounded-md border border-sky-300 bg-white px-2 py-0.5 text-xs font-medium text-sky-500 transition-colors hover:bg-sky-50"
+            @click="showExplanation = true"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
+            解説
+          </button>
+        </div>
         <p v-if="description" class="mt-1 text-sm text-muted-foreground">{{ description }}</p>
       </div>
     </div>
+
+    <!-- 解説モーダル -->
+    <ExplanationModal v-if="slots.explanation" v-model="showExplanation">
+      <slot name="explanation" :close="() => showExplanation = false" />
+    </ExplanationModal>
 
     <!-- 分析エリア：画像が1枚以上あるとき — タブバー + 2カラム（オリジナル / 分析結果） -->
     <div v-if="images.length > 0" class="mt-6 overflow-hidden rounded-xl border-2 border-border">
@@ -67,6 +85,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, useSlots } from 'vue'
 import { DropZone, SplitPane } from '@/components/ui'
+import ExplanationModal from '@/components/ui/ExplanationModal.vue'
 import ImageGalleryBar from '@/components/ui/ImageGalleryBar.vue'
 import ImageCanvas from '@/features/image-analysis/ImageCanvas.vue'
 import { useImageStore } from '@/composables/useImageStore'
@@ -98,6 +117,7 @@ const props = withDefaults(defineProps<{
 })
 
 const slots = useSlots()
+const showExplanation = ref(false)
 const { images, selectedImage, loadProgress, canAddMore, addImage } = useImageStore()
 const { toast } = useToast()
 

@@ -2,11 +2,25 @@
   <!-- ページ：色相分析 — 3D地形 + 2Dガマットマップ -->
   <AnalysisPageLayout
     title="色相分析"
-    description="色相環上のガマット分布と各色相の支配率を可視化"
+    description="色相環のどの範囲の色が多く使われているかを、地形のように立体的に表示します"
     placeholder-text="画像をアップロードすると色相の分布が表示されます"
     :split-pane="true"
     pane-height="h-[calc(100vh-13rem)]"
   >
+    <template #title-icon>
+      <img src="@/assets/Hue-icon.png" alt="" class="h-14 w-14" />
+    </template>
+    <template #explanation="{ close }">
+      <ExplanationContent
+        title="色相分析"
+        :sections="explanationSections"
+        @close="close"
+      >
+        <template #icon>
+          <img src="@/assets/Hue-icon.png" alt="" class="h-8 w-8" />
+        </template>
+      </ExplanationContent>
+    </template>
     <template #default>
       <AnalysisErrorCard
         v-if="hueError"
@@ -55,7 +69,8 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref } from 'vue'
 import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
-import { AnalysisSpinner, AnalysisErrorCard, Toggle } from '@/components/ui'
+import { AnalysisSpinner, AnalysisErrorCard, Toggle, ExplanationContent } from '@/components/ui'
+import type { ExplanationSection } from '@/components/ui'
 import { LightnessBandToggle } from '@/features/hue-analysis'
 import { isAnalysisError } from '@/types/analysis'
 import type { HueAnalysisResult } from '@/types/hueAnalysis'
@@ -69,6 +84,21 @@ const LightnessBandPreview = defineAsyncComponent(() =>
 )
 
 const { selectedImage, getAnalysis, retryAnalysis } = useImageStore()
+
+const explanationSections: ExplanationSection[] = [
+  {
+    label: '色相分析とは',
+    description: '色相（Hue）は色の種類を表す属性で、赤・橙・黄・緑・青・紫などの違いに対応します。画像内のピクセルが色相環上のどの角度に分布しているかを分析します。',
+  },
+  {
+    label: '3D 地形チャートとは',
+    description: '色相環上の分布を3D地形として可視化します。山が高いほどその色相のピクセルが多いことを示します。視点をドラッグして回転させることで、あらゆる角度から分布を確認できます。',
+  },
+  {
+    label: '明度バンド切り替え',
+    description: '暗い色（Dark）・中間色（Mid）・明るい色（Light）のバンドで色相分布をフィルタリングできます。明度帯ごとの色相傾向を個別に確認することで、配色の奥行きを把握できます。',
+  },
+]
 
 const imageId = computed(() => selectedImage.value?.id ?? '')
 
