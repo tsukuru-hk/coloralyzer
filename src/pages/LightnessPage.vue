@@ -44,6 +44,14 @@
           <AnalysisSpinner v-else />
         </div>
         <div>
+          <h3 class="mb-2 flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+            明度分布バー
+            <InfoTooltip content="画像内の明度の占有比率を横棒で可視化したものです。各セグメントの幅がピクセル数の割合に対応します。" />
+          </h3>
+          <LightnessDistributionBar v-if="lightnessHistogram(colorAwareImageData)" :data="lightnessHistogram(colorAwareImageData)!" />
+          <AnalysisSpinner v-else />
+        </div>
+        <div>
           <Legend
             title="Lightness (明度)"
             min-label="0 (黒)"
@@ -63,7 +71,7 @@ import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
 import { Legend, InfoTooltip, Toggle, AnalysisErrorCard, AnalysisSpinner, ExplanationContent } from '@/components/ui'
 import type { ExplanationSection } from '@/components/ui'
 import { isAnalysisError } from '@/types/analysis'
-import { LightnessMapPanel, LightnessHistogramPanel } from '@/features/lightness-map'
+import { LightnessMapPanel, LightnessHistogramPanel, LightnessDistributionBar } from '@/features/lightness-map'
 import { useImageStore } from '@/composables/useImageStore'
 
 const { selectedImage, getAnalysis, retryAnalysis } = useImageStore()
