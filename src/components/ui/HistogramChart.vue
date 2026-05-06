@@ -48,7 +48,7 @@ const props = withDefaults(
     useGrayscaleFill: false,
     useChromaFill: false,
     logScale: false,
-    height: 100,
+    height: 150,
   },
 )
 

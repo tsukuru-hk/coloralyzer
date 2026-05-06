@@ -14,7 +14,7 @@ import type { HistogramBin, HistogramData, HistogramError } from './histogramTyp
  */
 export function generateLightnessHistogram(
   source: ColorAwareImageData,
-  binCount: number = 256,
+  binCount: number = 64,
 ): Result<HistogramData, HistogramError> {
   const { data, width, height } = source.imageData
   const pixelCount = width * height
