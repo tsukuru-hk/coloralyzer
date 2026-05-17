@@ -1,7 +1,7 @@
 <template>
   <AnalysisPageLayout
     title="色彩の総合分析"
-    description="画像の配色を明度・彩度・色相の3軸でまとめて俯瞰します"
+    description="画像を読み込むだけで、色彩の全体像を瞬時に把握。配色の強みや偏りを、数値とビジュアルで確認できます。"
     placeholder-text="画像をアップロードすると色彩の総合分析が表示されます"
     full-width
   >

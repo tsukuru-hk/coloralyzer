@@ -3,19 +3,19 @@
     <!-- Row 1: オリジナル / 明度 / 彩度 -->
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
       <div>
-        <h3 class="mb-2 text-sm font-medium text-muted-foreground">オリジナル画像</h3>
+        <SectionLabel>オリジナル画像</SectionLabel>
         <ImageCanvas :image-data="colorAwareImageData.imageData" />
       </div>
 
       <div>
-        <h3 class="mb-2 text-sm font-medium text-muted-foreground">明度グレースケール</h3>
+        <SectionLabel>明度グレースケール</SectionLabel>
         <AnalysisErrorCard v-if="lightnessError" :message="lightnessErrorMsg" @retry="retryAnalysis(imageId, 'lightnessMap')" />
         <ImageCanvas v-else-if="lightnessMapData" :image-data="lightnessMapData" />
         <AnalysisSpinner v-else class="aspect-square" />
       </div>
 
       <div>
-        <h3 class="mb-2 text-sm font-medium text-muted-foreground">彩度グレースケール</h3>
+        <SectionLabel>彩度グレースケール</SectionLabel>
         <AnalysisErrorCard v-if="chromaError" :message="chromaErrorMsg" @retry="retryAnalysis(imageId, 'chromaMap')" />
         <ImageCanvas v-else-if="chromaMapData" :image-data="chromaMapData" />
         <AnalysisSpinner v-else class="aspect-square" />
@@ -25,7 +25,7 @@
     <!-- Row 2: 色相 / 3D ガマット / 色分布 -->
     <div ref="row2Ref" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
       <div>
-        <h3 class="mb-2 text-sm font-medium text-muted-foreground">色相分析</h3>
+        <SectionLabel>色相分析</SectionLabel>
         <AnalysisErrorCard v-if="hueError" :message="hueErrorMsg" @retry="retryAnalysis(imageId, 'hueAnalysis')" />
         <div v-else-if="hueData && row2Visible" class="relative h-[320px] overflow-hidden rounded-lg">
           <HueTerrainChart
@@ -39,7 +39,7 @@
       </div>
 
       <div>
-        <h3 class="mb-2 text-sm font-medium text-muted-foreground">3D ガマット</h3>
+        <SectionLabel>3D ガマット</SectionLabel>
         <AnalysisErrorCard v-if="gamutError" :message="gamutErrorMsg" @retry="retryAnalysis(imageId, 'gamutPointCloud')" />
         <div v-else-if="gamutData && row2Visible" class="relative h-[320px] overflow-hidden rounded-lg">
           <GamutScene
@@ -54,7 +54,7 @@
       </div>
 
       <div>
-        <h3 class="mb-2 text-sm font-medium text-muted-foreground">色分布</h3>
+        <SectionLabel>色分布</SectionLabel>
         <AnalysisErrorCard v-if="clusterError" :message="clusterErrorMsg" @retry="retryAnalysis(imageId, 'colorClustering')" />
         <div v-else-if="clusterData && row2Visible" class="space-y-3">
           <ClusterBubbleChart :key="imageId" :data="clusterData" :height="280" />
@@ -85,7 +85,7 @@ import type { HueAnalysisResult } from '@/types/hueAnalysis'
 import type { ColorClusterResult } from '@/domain/colorCluster'
 import { isAnalysisError } from '@/types/analysis'
 import { useImageStore } from '@/composables/useImageStore'
-import { AnalysisSpinner, AnalysisErrorCard } from '@/components/ui'
+import { AnalysisSpinner, AnalysisErrorCard, SectionLabel } from '@/components/ui'
 import ImageCanvas from '@/features/image-analysis/ImageCanvas.vue'
 
 const HueTerrainChart = defineAsyncComponent(() =>

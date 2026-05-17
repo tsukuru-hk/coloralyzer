@@ -1,7 +1,7 @@
 <template>
   <!-- デジタルヒストグラム: 隙間なし塗りつぶしバー。親要素の横幅に追従する -->
   <div>
-    <p v-if="title" class="mb-2 text-sm font-medium text-muted-foreground">{{ title }}</p>
+    <SectionLabel v-if="title">{{ title }}</SectionLabel>
     <div class="border border-border">
     <svg
       :viewBox="`0 0 ${data.bins.length} ${svgHeight}`"
@@ -29,6 +29,7 @@
 import { computed } from 'vue'
 import { formatHex, clampChroma, converter } from 'culori'
 import type { HistogramData } from '@/infrastructure/histogramTypes'
+import SectionLabel from './SectionLabel.vue'
 
 const props = withDefaults(
   defineProps<{

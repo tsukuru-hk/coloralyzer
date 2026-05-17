@@ -2,7 +2,7 @@
   <!-- ページ：色分布 — カラーパレット抽出とバブルパッキング可視化 -->
   <AnalysisPageLayout
     title="色分布"
-    description="使われている色をパレットに抽出し、メイン・サブ・アクセントなど色の面積比を確認できます"
+    description="使われている色をパレットに抽出し、それぞれの色がどのくらいの面積を占めているかを可視化します。"
     placeholder-text="画像をアップロードすると色分布が表示されます"
   >
     <template #title-icon>
@@ -23,10 +23,10 @@
       <div class="space-y-4">
         <div>
           <div class="mb-2 flex items-center justify-between">
-            <h3 class="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+            <SectionLabel>
               カラーパレット
               <InfoTooltip content="OKLCH 知覚色空間で色相・明度・彩度をグリッド分割し、画像に使われている色を自動的にパレットとして抽出しています。" />
-            </h3>
+            </SectionLabel>
             <!-- パレット色数ステッパー -->
             <div class="flex items-center gap-1.5">
               <span class="text-xs text-muted-foreground">パレット数</span>
@@ -78,7 +78,7 @@
 import { computed, defineAsyncComponent, reactive, shallowRef, watch } from 'vue'
 import type { ColorClusterResult } from '@/domain/colorCluster'
 import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
-import { InfoTooltip, AnalysisSpinner, AnalysisErrorCard, ExplanationContent } from '@/components/ui'
+import { InfoTooltip, AnalysisSpinner, AnalysisErrorCard, ExplanationContent, SectionLabel } from '@/components/ui'
 import type { ExplanationSection } from '@/components/ui'
 import { ClusterRatioBar } from '@/features/color-cluster'
 import { isAnalysisError } from '@/types/analysis'

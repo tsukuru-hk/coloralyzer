@@ -33,11 +33,12 @@
     <!-- 分析エリア：画像が1枚以上あるとき — タブバー + 2カラム（オリジナル / 分析結果） -->
     <div v-if="images.length > 0" class="mt-6 overflow-hidden rounded-xl border-2 border-border">
       <ImageGalleryBar />
+
       <!-- Split Pane モード：ドラッグで比率調整可能 -->
       <SplitPane v-if="selectedImage && splitPane" :default-ratio="0.3" :min-ratio="0.15" :max-ratio="0.85" :class="[paneHeight, 'bg-card']">
         <template #left>
-          <div class="h-full overflow-auto p-4">
-            <h3 class="mb-2 text-sm font-medium text-muted-foreground">オリジナル画像</h3>
+          <div class="relative h-full overflow-auto p-4">
+            <SectionLabel>オリジナル画像</SectionLabel>
             <slot v-if="slots.left" name="left" :color-aware-image-data="selectedImage!.colorAwareImageData" />
             <ImageCanvas v-else :image-data="selectedImage!.colorAwareImageData.imageData" />
           </div>
@@ -48,18 +49,20 @@
           </div>
         </template>
       </SplitPane>
+
       <!-- フルワイドモード：スロットに全幅を委ねる -->
       <div v-else-if="selectedImage && fullWidth" class="bg-card p-4">
         <slot :color-aware-image-data="selectedImage.colorAwareImageData" />
       </div>
+
       <!-- 通常モード：固定 2 カラム -->
       <div v-else-if="selectedImage" class="grid grid-cols-2 gap-6 bg-card p-4">
         <div>
-          <h3 class="mb-2 text-sm font-medium text-muted-foreground">オリジナル画像</h3>
+          <SectionLabel>オリジナル画像</SectionLabel>
           <ImageCanvas :image-data="selectedImage.colorAwareImageData.imageData" />
         </div>
         <div>
-          <h3 v-if="analysisTitle" class="mb-2 text-sm font-medium text-muted-foreground">{{ analysisTitle }}</h3>
+          <SectionLabel v-if="analysisTitle">{{ analysisTitle }}</SectionLabel>
           <slot :color-aware-image-data="selectedImage.colorAwareImageData" />
         </div>
       </div>
@@ -84,7 +87,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount, useSlots } from 'vue'
-import { DropZone, SplitPane } from '@/components/ui'
+import { DropZone, SplitPane, SectionLabel } from '@/components/ui'
 import ExplanationModal from '@/components/ui/ExplanationModal.vue'
 import ImageGalleryBar from '@/components/ui/ImageGalleryBar.vue'
 import ImageCanvas from '@/features/image-analysis/ImageCanvas.vue'
@@ -120,6 +123,7 @@ const slots = useSlots()
 const showExplanation = ref(false)
 const { images, selectedImage, loadProgress, canAddMore, addImage } = useImageStore()
 const { toast } = useToast()
+
 
 const uploadLottieRef = ref<HTMLDivElement | null>(null)
 /** Lottie の表示用アニメデータ。`useLottie` に Ref で渡すとホバー時も再ロードされる。 */
@@ -187,7 +191,7 @@ watch(
   (text) => startTypewriter(text),
 )
 
-// 全画像が削除されて DropZone が再表示されたときにタイプライターをリセット
+// 画像数の変化を監視：全削除時にリセット
 watch(
   () => images.value.length,
   (newLen, oldLen) => {

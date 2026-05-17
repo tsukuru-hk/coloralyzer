@@ -37,7 +37,7 @@ function drawCanvas(data: ImageData) {
 
 <style scoped>
 .canvas-wrap {
-  margin: 1rem 0 0;
+  margin: 0;
 }
 .preview {
   display: block;

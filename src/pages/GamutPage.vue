@@ -1,7 +1,7 @@
 <template>
   <AnalysisPageLayout
     title="3D ガマット"
-    description="画像に含まれるすべての色を3D空間にプロットし、配色の広がりや偏りを立体的に確認できます"
+    description="画像に含まれるすべての色を3D空間にマッピングし、配色の広がりや偏りを立体的に確認できます"
     placeholder-text="画像をアップロードすると3Dマッピングが表示されます"
     :split-pane="true"
     pane-height="h-[calc(100vh-13rem)]"

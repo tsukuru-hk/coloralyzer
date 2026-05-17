@@ -1,6 +1,6 @@
 <template>
   <!-- グローバル左ナビ：ロゴ + ルートリンク一覧 -->
-  <aside class="flex h-screen w-16 flex-col border-r-2 border-border bg-card shrink-0">
+  <aside class="sticky top-0 flex h-screen w-16 flex-col border-r-2 border-border bg-card shrink-0">
     <!-- アプリマーク -->
     <div
       class="relative flex h-14 items-center justify-center border-b-2 border-border"
@@ -23,12 +23,12 @@
         <Transition name="bubble">
           <div
             v-if="isLottieActive"
-            class="relative rounded-lg bg-card border-2 border-border px-3 py-2 shadow-lg whitespace-nowrap pointer-events-auto"
+            class="relative rounded-lg bg-card border-2 border-border px-3 pt-1.5 pb-2 shadow-lg whitespace-nowrap pointer-events-auto"
           >
             <!-- 左向き三角 -->
             <div class="absolute -left-2 top-1/2 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[8px] border-r-border" />
             <div class="absolute -left-[6px] top-1/2 -translate-y-1/2 w-0 h-0 border-t-[5px] border-t-transparent border-b-[5px] border-b-transparent border-r-[7px] border-r-card" />
-            <span class="text-xs text-foreground">{{ bubbleTypedText }}</span>
+            <span class="text-xs leading-none text-foreground">{{ bubbleTypedText }}</span>
           </div>
         </Transition>
       </div>
