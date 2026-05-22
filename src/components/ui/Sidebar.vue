@@ -35,7 +35,7 @@
     </div>
     <!-- 主要ルート（分析ページ / デザインシステム） -->
     <nav ref="navRef" class="relative flex-1 flex flex-col gap-1 p-1 pt-2">
-      <!-- スライドするアクティブハイライト -->
+      <!-- スライドするアクティブハイライト --> 
       <div
         v-if="highlightStyle"
         class="absolute left-1 right-1 rounded-lg bg-primary pointer-events-none will-change-transform"
