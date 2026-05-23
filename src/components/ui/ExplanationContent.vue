@@ -41,10 +41,9 @@
       <!-- 右 3/4: 解説内容 -->
       <div class="flex-1 overflow-y-auto p-5">
         <div class="flex h-full flex-col">
-          <!-- 上部 2/3: 動画 -->
-          <div class="relative flex-[2] overflow-hidden rounded-xl bg-muted">
+          <!-- 上部: メディア -->
+          <div v-if="activeSection?.video" class="relative flex-[2] overflow-hidden rounded-xl bg-muted">
             <video
-              v-if="activeSection?.video"
               :key="activeSection.video"
               autoplay
               muted
@@ -54,7 +53,17 @@
             >
               <source :src="activeSection.video" type="video/mp4" />
             </video>
-            <div v-else class="flex h-full items-center justify-center text-muted-foreground">
+          </div>
+          <div v-else-if="activeSection?.image" class="overflow-hidden rounded-xl bg-muted">
+            <img
+              :key="activeSection.image"
+              :src="activeSection.image"
+              :alt="activeSection.label"
+              class="w-full"
+            />
+          </div>
+          <div v-else class="relative flex-[2] overflow-hidden rounded-xl bg-muted">
+            <div class="flex h-full items-center justify-center text-muted-foreground">
               <div class="text-center">
                 <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-2 opacity-40">
                   <polygon points="23 7 16 12 23 17 23 7" />
@@ -85,6 +94,8 @@ export interface ExplanationSection {
   description: string
   /** 動画 URL（未設定なら準備中プレースホルダ） */
   video?: string
+  /** 画像 URL（動画がなければこちらを表示） */
+  image?: string
 }
 
 const props = defineProps<{
