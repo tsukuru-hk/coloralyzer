@@ -81,6 +81,7 @@ const explanationSections: ExplanationSection[] = [
   {
     label: '明度分析とは',
     description: '明度とは、ひとことで言えば色の「明るさ」のことです。同じ青でも空色は明るく、紺色は暗い——この明暗の度合いが明度です。本サイトでは人間の知覚に沿った OKLCH 色空間を採用しており、明度は Lightness（L）として 0（真っ黒）〜 1（真っ白）の数値で定義されます。この分析ページでは、画像の各ピクセルの L 値をグレースケールやヒストグラムで可視化し、画像全体の明暗の傾向を把握できるようにしています。',
+    image: '/explanations/lightness-overview.png',
   },
   {
     label: '明度グレースケールとは',
