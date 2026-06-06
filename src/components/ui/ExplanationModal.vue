@@ -7,9 +7,12 @@
         @click.self="$emit('update:modelValue', false)"
       >
         <!-- Backdrop -->
-        <div class="modal-backdrop absolute inset-0 bg-black/60 backdrop-blur-sm" />
+        <div
+          class="modal-backdrop absolute inset-0 bg-black/60 backdrop-blur-sm"
+          @click="$emit('update:modelValue', false)"
+        />
         <!-- Modal -->
-        <div class="modal-panel relative z-10 m-6 flex h-[85vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+        <div class="modal-panel relative z-10 m-6 flex h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
           <slot />
         </div>
       </div>
