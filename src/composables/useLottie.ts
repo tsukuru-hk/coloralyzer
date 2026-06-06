@@ -15,6 +15,8 @@ export interface UseLottieOptions {
   autoplay?: boolean
   /** レンダラー（既定: `'svg'`） */
   renderer?: 'svg' | 'canvas' | 'html'
+  /** 再生速度の倍率（既定: `1`）。`1.3` なら 1.3 倍速で再生し、`complete` もその分早く発火する */
+  speed?: number
   /**
    * アニメデータが DOM に展開されて再生可能になった時点で呼ばれる。
    * ロード成功の合図として使える（`DOMLoaded` イベント）。
@@ -55,6 +57,7 @@ export function useLottie(
     loop = true,
     autoplay = true,
     renderer = 'svg',
+    speed = 1,
     onReady,
     onComplete,
     onError,
@@ -75,6 +78,9 @@ export function useLottie(
         autoplay,
         animationData: data,
       })
+      if (speed !== 1) {
+        instance.setSpeed(speed)
+      }
       if (onReady) {
         instance.addEventListener('DOMLoaded', () => onReady())
       }

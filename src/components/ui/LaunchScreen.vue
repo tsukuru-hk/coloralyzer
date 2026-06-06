@@ -6,14 +6,8 @@
       :class="{ 'is-fading': fadingOut }"
       @transitionend.self="onOverlayTransitionEnd"
     >
-      <!-- プログレスバー -->
-      <div class="progress-track">
-        <div v-if="showProgress" class="progress-bar" />
-      </div>
-
       <div class="launch-content">
         <div ref="lottieRef" class="launch-lottie" />
-        <span class="progress-text" :class="{ visible: showProgress }">{{ percent }}%</span>
       </div>
     </div>
   </Teleport>
@@ -38,8 +32,6 @@ const props = withDefaults(defineProps<{
   freezeFrame: -1,
 })
 
-const DURATION = 500
-const durationCss = `${DURATION}ms`
 /** フェードアウトに使う transition 時間（ms）。CSS の transition-duration と同期。 */
 const FADE_MS = 800
 const fadeCss = `${FADE_MS}ms`
@@ -48,37 +40,12 @@ const fadeCss = `${FADE_MS}ms`
  * DOM 展開が確認できたらこのタイマーは解除し、アニメの長さに関わらず `complete` を待つ。
  */
 const LOAD_TIMEOUT_MS = 3000
-/** 100% 到達後に一瞬「100%」を見せてから閉じるまでの余韻 */
-const COMPLETION_HOLD_MS = 150
 
 const mounted = ref(true)
 const fadingOut = ref(false)
-const showProgress = ref(false)
-const percent = ref(0)
 const lottieRef = ref<HTMLDivElement | null>(null)
-let rafId = 0
 let fallbackTimer: ReturnType<typeof setTimeout> | null = null
-let holdTimer: ReturnType<typeof setTimeout> | null = null
 let fadeSafetyTimer: ReturnType<typeof setTimeout> | null = null
-
-/**
- * プログレスを RAF で進行させ、完了時に余韻を挟んでフェードアウトを開始する。
- * CSS animation の `animationend` は SFC の scoped `@keyframes` 名がハッシュ化されるため当てにせず、
- * RAF 側で完了を検知する（プログレスバーの CSS アニメ長は同じ `DURATION` で揃えている）。
- */
-function startCounter(): void {
-  const start = performance.now()
-  function tick(): void {
-    const elapsed = performance.now() - start
-    percent.value = Math.min(Math.round((elapsed / DURATION) * 100), 100)
-    if (elapsed < DURATION) {
-      rafId = requestAnimationFrame(tick)
-      return
-    }
-    holdTimer = setTimeout(startFadeOut, COMPLETION_HOLD_MS)
-  }
-  rafId = requestAnimationFrame(tick)
-}
 
 /** opacity の transition をトリガーして、完了後に要素をアンマウントする。 */
 function startFadeOut(): void {
@@ -101,11 +68,11 @@ function finishUnmount(): void {
   emit('done')
 }
 
-/** Lottie の complete / タイムアウトのどちらでも、プログレスへの移行は1回限りで良い。 */
-let progressStarted = false
-function beginProgress(): void {
-  if (progressStarted) return
-  progressStarted = true
+/** Lottie の complete / タイムアウトのどちらでも、フェードアウトへの移行は1回限りで良い。 */
+let finishStarted = false
+function beginFinish(): void {
+  if (finishStarted) return
+  finishStarted = true
   if (fallbackTimer) {
     clearTimeout(fallbackTimer)
     fallbackTimer = null
@@ -117,12 +84,15 @@ function beginProgress(): void {
     const target = props.freezeFrame >= 0 ? props.freezeFrame : anim.totalFrames - 1
     anim.goToAndStop(target, true)
   }
-  showProgress.value = true
-  startCounter()
+  startFadeOut()
 }
+
+/** ローンチアニメの再生速度。1.3 倍速で再生し、サイト表示までの待ち時間を短縮する */
+const LOTTIE_SPEED = 1.3
 
 const lottie = useLottie(lottieRef, animationData, {
   loop: false,
+  speed: LOTTIE_SPEED,
   // ロードが確認できたらタイムアウトによる打ち切りを解除し、アニメを最後まで再生させる
   onReady: () => {
     if (fallbackTimer) {
@@ -130,18 +100,16 @@ const lottie = useLottie(lottieRef, animationData, {
       fallbackTimer = null
     }
   },
-  onComplete: beginProgress,
-  onError: beginProgress,
+  onComplete: beginFinish,
+  onError: beginFinish,
 })
 
 onMounted(() => {
-  fallbackTimer = setTimeout(beginProgress, LOAD_TIMEOUT_MS)
+  fallbackTimer = setTimeout(beginFinish, LOAD_TIMEOUT_MS)
 })
 
 onBeforeUnmount(() => {
-  cancelAnimationFrame(rafId)
   if (fallbackTimer) clearTimeout(fallbackTimer)
-  if (holdTimer) clearTimeout(holdTimer)
   if (fadeSafetyTimer) clearTimeout(fadeSafetyTimer)
 })
 </script>
@@ -169,51 +137,8 @@ onBeforeUnmount(() => {
   gap: 16px;
 }
 
-.progress-text {
-  font-size: 42px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  color: #333;
-  letter-spacing: 0.05em;
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.progress-text.visible {
-  opacity: 1;
-}
-
 .launch-lottie {
   width: 200px;
   height: 200px;
-}
-
-/* プログレスバー */
-.progress-track {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 30px;
-}
-
-.progress-bar {
-  height: 100%;
-  width: 0;
-  animation: progress-fill v-bind(durationCss) linear forwards, hue-shift v-bind(durationCss) linear forwards;
-}
-
-@keyframes progress-fill {
-  to {
-    width: 100%;
-  }
-}
-
-@keyframes hue-shift {
-  0%   { background-color: oklch(0.7 0.3 0); }
-  25%  { background-color: oklch(0.7 0.3 90); }
-  50%  { background-color: oklch(0.7 0.3 180); }
-  75%  { background-color: oklch(0.7 0.3 270); }
-  100% { background-color: oklch(0.7 0.3 360); }
 }
 </style>
