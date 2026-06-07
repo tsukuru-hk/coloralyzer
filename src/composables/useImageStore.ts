@@ -5,6 +5,7 @@ import type { AnalysisParams } from '@/infrastructure/analysisWorkerProtocol'
 import { isAnalysisError } from '@/types/analysis'
 import { loadImageUseCase } from '@/application/useCase/loadImageUseCase'
 import { requestAnalysis, cancelByImageId } from '@/infrastructure/analysisWorkerClient'
+import type { AnalysisResponse } from '@/infrastructure/analysisWorkerProtocol'
 import { determineWorkingColorSpace } from '@/infrastructure/displayCapabilityDetector'
 import { useToast } from '@/composables/useToast'
 
@@ -23,11 +24,14 @@ const images = ref<ImageEntry[]>([])
 const selectedId = ref<string | null>(null)
 const loadProgress = ref<'idle' | 'loading' | 'done' | 'error'>('idle')
 
-/** 画像ID → 分析種別 → 結果 の reactive キャッシュ */
-const analysisCacheMap = shallowRef(new Map<string, Partial<AnalysisResult>>())
+/** スロットキー → 分析結果 の reactive キャッシュ */
+const analysisCacheMap = shallowRef(new Map<string, AnalysisResult[AnalysisKey] | AnalysisError>())
 
-/** 処理中の分析を追跡する Set（"imageId::analysisKey" 形式） */
+/** 処理中の分析スロット */
 const inFlightSet = shallowRef(new Set<string>())
+
+/** スロットごとに最後に dispatch した requestId（古い Worker 応答を無視する） */
+const latestRequestIdBySlot = new Map<string, string>()
 
 /** 起動時に一度だけ判定する作業色空間 */
 const workingColorSpace = ref<ColorSpace>(determineWorkingColorSpace())
@@ -39,20 +43,33 @@ const selectedImage = computed(() =>
 const colorAwareImageData = computed(() => selectedImage.value?.colorAwareImageData ?? null)
 const canAddMore = computed(() => images.value.length < MAX_IMAGES)
 
-function inFlightKey(imageId: string, key: AnalysisKey): string {
+/**
+ * キャッシュ・in-flight 用スロットキー。
+ * colorClustering は paletteSize ごとに別スロットとする。
+ */
+function analysisSlotKey(imageId: string, key: AnalysisKey, params?: AnalysisParams): string {
+  if (key === 'colorClustering') {
+    const ps = params?.paletteSize ?? 0
+    return `${imageId}::${key}::ps=${ps}`
+  }
   return `${imageId}::${key}`
 }
 
-function setCacheEntry<K extends AnalysisKey>(imageId: string, key: K, value: AnalysisResult[K]) {
+function setCacheEntry(slot: string, value: AnalysisResult[AnalysisKey] | AnalysisError) {
   const newMap = new Map(analysisCacheMap.value)
-  const entry = { ...(newMap.get(imageId) ?? {}), [key]: value }
-  newMap.set(imageId, entry)
+  newMap.set(slot, value)
   analysisCacheMap.value = newMap
 }
 
-function deleteCacheEntry(imageId: string) {
+function deleteCacheEntriesForImage(imageId: string) {
   const newMap = new Map(analysisCacheMap.value)
-  newMap.delete(imageId)
+  const prefix = `${imageId}::`
+  for (const k of newMap.keys()) {
+    if (k.startsWith(prefix)) {
+      newMap.delete(k)
+      latestRequestIdBySlot.delete(k)
+    }
+  }
   analysisCacheMap.value = newMap
 }
 
@@ -65,12 +82,29 @@ function generateThumbnailUrl(data: ImageData): Promise<string> {
     const canvas = document.createElement('canvas')
     canvas.width = data.width
     canvas.height = data.height
-    canvas.getContext('2d')!.putImageData(data, 0, 0)
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      reject(new Error('Could not get 2d context'))
+      return
+    }
+    ctx.putImageData(data, 0, 0)
     canvas.toBlob((blob) => {
       if (blob) resolve(URL.createObjectURL(blob))
       else reject(new Error('Failed to generate thumbnail'))
     })
   })
+}
+
+function cacheResponsePayload(
+  response: AnalysisResponse,
+): AnalysisResult[AnalysisKey] | null {
+  if (response.status !== 'success') return null
+  if (response.imageData) return response.imageData
+  if (response.histogramData) return response.histogramData
+  if (response.gamutPointCloudData) return response.gamutPointCloudData
+  if (response.colorClusterData) return response.colorClusterData
+  if (response.hueAnalysisData) return response.hueAnalysisData
+  return null
 }
 
 /**
@@ -103,7 +137,8 @@ export function useImageStore() {
     let thumbnailUrl: string
     try {
       thumbnailUrl = await generateThumbnailUrl(result.value.imageData)
-    } catch {
+    } catch (err) {
+      console.error('[useImageStore] Thumbnail generation failed:', err)
       toast({ title: 'サムネイル生成に失敗しました', variant: 'error' })
       loadProgress.value = 'error'
       return
@@ -125,51 +160,55 @@ export function useImageStore() {
    * 指定画像・指定種別の分析結果を取得する。
    * キャッシュにあれば即返す。なければ Worker に依頼し null を返す。
    * Worker 完了時に reactive キャッシュが更新され、再レンダーでキャッシュヒットする。
+   * 失敗した分析は AnalysisError が返るため、呼び出し側は isAnalysisError で判別する。
    */
-  function getAnalysis<K extends AnalysisKey>(imageId: string, source: ColorAwareImageData, key: K, params?: AnalysisParams): AnalysisResult[K] | null {
-    const cache = analysisCacheMap.value.get(imageId)
-    if (cache && key in cache) {
-      return cache[key] as AnalysisResult[K]
+  function getAnalysis<K extends AnalysisKey>(
+    imageId: string,
+    source: ColorAwareImageData,
+    key: K,
+    params?: AnalysisParams,
+  ): AnalysisResult[K] | AnalysisError | null {
+    const slot = analysisSlotKey(imageId, key, params)
+    const cached = analysisCacheMap.value.get(slot)
+    if (cached !== undefined) {
+      return cached as AnalysisResult[K] | AnalysisError
     }
 
-    const k = inFlightKey(imageId, key)
-    if (inFlightSet.value.has(k)) {
+    if (inFlightSet.value.has(slot)) {
       return null
     }
 
-    // Worker に dispatch
     const nextInFlight = new Set(inFlightSet.value)
-    nextInFlight.add(k)
+    nextInFlight.add(slot)
     inFlightSet.value = nextInFlight
 
-    const { promise } = requestAnalysis(imageId, key, source, params)
+    const { requestId, promise } = requestAnalysis(imageId, key, source, params)
+    latestRequestIdBySlot.set(slot, requestId)
 
     promise.then((response) => {
-      // in-flight から削除
+      if (latestRequestIdBySlot.get(slot) !== response.requestId) {
+        return
+      }
+
       const updated = new Set(inFlightSet.value)
-      updated.delete(k)
+      updated.delete(slot)
       inFlightSet.value = updated
 
-      if (response.status === 'success') {
-        if (response.imageData) {
-          setCacheEntry(imageId, key, response.imageData as AnalysisResult[K])
-        } else if (response.histogramData) {
-          setCacheEntry(imageId, key, response.histogramData as AnalysisResult[K])
-        } else if (response.gamutPointCloudData) {
-          setCacheEntry(imageId, key, response.gamutPointCloudData as AnalysisResult[K])
-        } else if (response.colorClusterData) {
-          setCacheEntry(imageId, key, response.colorClusterData as AnalysisResult[K])
-        } else if (response.hueAnalysisData) {
-          setCacheEntry(imageId, key, response.hueAnalysisData as AnalysisResult[K])
-        }
+      const payload = cacheResponsePayload(response)
+      if (payload !== null) {
+        setCacheEntry(slot, payload)
       } else {
-        // エラー状態をキャッシュに保存（無限スピナーを防止）
+        // エラー応答・payload 不明な success 応答ともエラーとしてキャッシュし、
+        // 再 dispatch ループと無限スピナーを防止する
         const error: AnalysisError = {
           _tag: 'AnalysisError',
           analysisKey: key,
-          message: response.errorMessage ?? '分析処理に失敗しました',
+          message:
+            response.status === 'success'
+              ? '分析結果の形式が不正です'
+              : (response.errorMessage ?? '分析処理に失敗しました'),
         }
-        setCacheEntry(imageId, key, error as unknown as AnalysisResult[K])
+        setCacheEntry(slot, error)
       }
     })
 
@@ -177,35 +216,50 @@ export function useImageStore() {
   }
 
   /** 指定の分析が処理中かどうかを返す */
-  function isAnalysisLoading(imageId: string, key: AnalysisKey): boolean {
-    return inFlightSet.value.has(inFlightKey(imageId, key))
+  function isAnalysisLoading(imageId: string, key: AnalysisKey, params?: AnalysisParams): boolean {
+    return inFlightSet.value.has(analysisSlotKey(imageId, key, params))
   }
 
   /** エラーになった分析をキャッシュから削除し、再取得を促す */
-  function retryAnalysis(imageId: string, key: AnalysisKey): void {
-    const cache = analysisCacheMap.value.get(imageId)
-    if (cache && key in cache && isAnalysisError(cache[key])) {
-      invalidateAnalysis(imageId, key)
+  function retryAnalysis(imageId: string, key: AnalysisKey, params?: AnalysisParams): void {
+    const slot = analysisSlotKey(imageId, key, params)
+    const cached = analysisCacheMap.value.get(slot)
+    if (cached !== undefined && isAnalysisError(cached)) {
+      invalidateAnalysis(imageId, key, params)
     }
   }
 
-  /** 指定分析のキャッシュを無効化し、次回 getAnalysis で再計算を促す */
-  function invalidateAnalysis(imageId: string, key: AnalysisKey): void {
-    const cache = analysisCacheMap.value.get(imageId)
-    if (cache && key in cache) {
-      const newMap = new Map(analysisCacheMap.value)
-      const entry = { ...newMap.get(imageId)! }
-      delete entry[key]
-      newMap.set(imageId, entry)
-      analysisCacheMap.value = newMap
+  /**
+   * 指定分析のキャッシュを無効化し、次回 getAnalysis で再計算を促す。
+   * colorClustering で params を省略した場合、その画像の全 paletteSize スロットを無効化する。
+   */
+  function invalidateAnalysis(imageId: string, key: AnalysisKey, params?: AnalysisParams): void {
+    const newMap = new Map(analysisCacheMap.value)
+    const slotPrefix = `${imageId}::${key}`
+
+    if (key === 'colorClustering' && params === undefined) {
+      for (const k of [...newMap.keys()]) {
+        if (k.startsWith(`${slotPrefix}::`)) {
+          newMap.delete(k)
+          latestRequestIdBySlot.delete(k)
+        }
+      }
+    } else {
+      const slot = analysisSlotKey(imageId, key, params)
+      newMap.delete(slot)
+      latestRequestIdBySlot.delete(slot)
     }
-    // in-flight も削除して再リクエスト可能にする
-    const k = inFlightKey(imageId, key)
-    if (inFlightSet.value.has(k)) {
-      const updated = new Set(inFlightSet.value)
-      updated.delete(k)
-      inFlightSet.value = updated
+    analysisCacheMap.value = newMap
+
+    const updated = new Set(inFlightSet.value)
+    if (key === 'colorClustering' && params === undefined) {
+      for (const k of updated) {
+        if (k.startsWith(`${slotPrefix}::`)) updated.delete(k)
+      }
+    } else {
+      updated.delete(analysisSlotKey(imageId, key, params))
     }
+    inFlightSet.value = updated
   }
 
   /**
@@ -219,10 +273,9 @@ export function useImageStore() {
     const removed = images.value[index]
     if (!removed) return
     URL.revokeObjectURL(removed.thumbnailUrl)
-    deleteCacheEntry(id)
+    deleteCacheEntriesForImage(id)
     cancelByImageId(id)
 
-    // inFlightSet からも該当エントリを削除
     const nextInFlight = new Set(inFlightSet.value)
     for (const k of nextInFlight) {
       if (k.startsWith(`${id}::`)) nextInFlight.delete(k)
@@ -252,6 +305,7 @@ export function useImageStore() {
     }
     analysisCacheMap.value = new Map()
     inFlightSet.value = new Set()
+    latestRequestIdBySlot.clear()
     images.value = []
     selectedId.value = null
     loadProgress.value = 'idle'

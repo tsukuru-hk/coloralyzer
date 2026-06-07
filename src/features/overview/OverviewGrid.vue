@@ -80,7 +80,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import type { ColorAwareImageData } from '@/domain/colorSpace'
-import type { GamutPointCloudData, AnalysisError } from '@/types/analysis'
+import type { GamutPointCloudData } from '@/types/analysis'
 import type { HueAnalysisResult } from '@/types/hueAnalysis'
 import type { ColorClusterResult } from '@/domain/colorCluster'
 import { isAnalysisError } from '@/types/analysis'
@@ -102,7 +102,7 @@ const props = defineProps<{
   colorAwareImageData: ColorAwareImageData
 }>()
 
-const { selectedImage, getAnalysis, isAnalysisLoading, retryAnalysis } = useImageStore()
+const { selectedImage, getAnalysis, retryAnalysis } = useImageStore()
 
 const imageId = computed(() => selectedImage.value?.id ?? '')
 
@@ -213,9 +213,19 @@ const hueError = computed(() => isAnalysisError(rawHueResult.value))
 const gamutError = computed(() => isAnalysisError(rawGamutCloud.value))
 const clusterError = computed(() => isAnalysisError(rawClusterResult.value))
 
-const lightnessErrorMsg = computed(() => (rawLightnessMap.value as AnalysisError)?.message ?? '')
-const chromaErrorMsg = computed(() => (rawChromaMap.value as AnalysisError)?.message ?? '')
-const hueErrorMsg = computed(() => (rawHueResult.value as AnalysisError)?.message ?? '')
-const gamutErrorMsg = computed(() => (rawGamutCloud.value as AnalysisError)?.message ?? '')
-const clusterErrorMsg = computed(() => (rawClusterResult.value as AnalysisError)?.message ?? '')
+const lightnessErrorMsg = computed(() =>
+  isAnalysisError(rawLightnessMap.value) ? rawLightnessMap.value.message : '',
+)
+const chromaErrorMsg = computed(() =>
+  isAnalysisError(rawChromaMap.value) ? rawChromaMap.value.message : '',
+)
+const hueErrorMsg = computed(() =>
+  isAnalysisError(rawHueResult.value) ? rawHueResult.value.message : '',
+)
+const gamutErrorMsg = computed(() =>
+  isAnalysisError(rawGamutCloud.value) ? rawGamutCloud.value.message : '',
+)
+const clusterErrorMsg = computed(() =>
+  isAnalysisError(rawClusterResult.value) ? rawClusterResult.value.message : '',
+)
 </script>

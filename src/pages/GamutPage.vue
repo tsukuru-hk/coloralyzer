@@ -34,10 +34,10 @@
       </div>
     </template>
     <template #default="{ colorAwareImageData }">
-      <AnalysisErrorCard v-if="isAnalysisError(pointCloud(colorAwareImageData))" :message="pointCloud(colorAwareImageData)!.message" @retry="retryAnalysis(selectedImage!.id, 'gamutPointCloud')" />
+      <AnalysisErrorCard v-if="pointCloudError" :message="pointCloudError.message" @retry="retryPointCloud" />
       <GamutScene
-        v-else-if="pointCloud(colorAwareImageData)"
-        :point-cloud-data="pointCloud(colorAwareImageData)!"
+        v-else-if="pointCloudResult"
+        :point-cloud-data="pointCloudResult"
         :color-space="colorAwareImageData.colorSpace"
         :mode="mode"
         :brush-data="brushData"
@@ -52,13 +52,12 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, watch } from 'vue'
-import type { ColorAwareImageData } from '@/domain/colorSpace'
 import { AnalysisPageLayout, AnalysisSpinner, AnalysisErrorCard, ExplanationContent } from '@/components/ui'
 import type { ExplanationSection } from '@/components/ui'
-import { isAnalysisError } from '@/types/analysis'
 import GamutBrushOverlay from '@/features/gamut-3d/GamutBrushOverlay.vue'
 import ImageCanvas from '@/features/image-analysis/ImageCanvas.vue'
 import { useImageStore } from '@/composables/useImageStore'
+import { useAnalysisResult } from '@/composables/useAnalysisResult'
 import { useToast } from '@/composables/useToast'
 import {
   useGamutBrush,
@@ -69,8 +68,14 @@ const GamutScene = defineAsyncComponent(() =>
   import('@/features/gamut-3d/GamutScene.vue'),
 )
 
-const { selectedImage, images, getAnalysis, retryAnalysis } = useImageStore()
+const { selectedImage, images } = useImageStore()
 const { toast } = useToast()
+
+const {
+  error: pointCloudError,
+  result: pointCloudResult,
+  retry: retryPointCloud,
+} = useAnalysisResult('gamutPointCloud')
 
 const explanationSections: ExplanationSection[] = [
   {
@@ -130,10 +135,4 @@ watch(images, (current, prev) => {
     if (!currentIds.has(old.id)) forgetImage(old.id)
   }
 }, { deep: false })
-
-function pointCloud(source: ColorAwareImageData) {
-  return selectedImage.value
-    ? getAnalysis(selectedImage.value.id, source, 'gamutPointCloud')
-    : null
-}
 </script>

@@ -19,15 +19,15 @@
         </template>
       </ExplanationContent>
     </template>
-    <template #default="{ colorAwareImageData }">
-      <div v-if="selectedImage" class="space-y-4">
+    <template #default>
+      <div v-if="imageId" class="space-y-4">
         <div>
           <SectionLabel>
             明度グレースケール
             <InfoTooltip content="OKLCH の Lightness 値をそのままグレースケールで可視化したものです。白いほど明るく、黒いほど暗いピクセルであることを示します。" />
           </SectionLabel>
-          <AnalysisErrorCard v-if="isAnalysisError(lightnessMap(colorAwareImageData))" :message="lightnessMap(colorAwareImageData)!.message" @retry="retryAnalysis(selectedImage!.id, 'lightnessMap')" />
-          <LightnessMapPanel v-else-if="lightnessMap(colorAwareImageData)" :lightness-map-data="lightnessMap(colorAwareImageData)!" />
+          <AnalysisErrorCard v-if="lightnessMapError" :message="lightnessMapError.message" @retry="retryLightnessMap" />
+          <LightnessMapPanel v-else-if="lightnessMapResult" :lightness-map-data="lightnessMapResult" />
           <AnalysisSpinner v-else class="aspect-square" />
         </div>
         <div>
@@ -39,8 +39,8 @@
               <Toggle v-model="lightnessLogScale" />
             </span>
           </SectionLabel>
-          <AnalysisErrorCard v-if="isAnalysisError(lightnessHistogram(colorAwareImageData))" :message="lightnessHistogram(colorAwareImageData)!.message" @retry="retryAnalysis(selectedImage!.id, 'lightnessHistogram')" />
-          <LightnessHistogramPanel v-else-if="lightnessHistogram(colorAwareImageData)" :histogram-data="lightnessHistogram(colorAwareImageData)!" :log-scale="lightnessLogScale" />
+          <AnalysisErrorCard v-if="lightnessHistogramError" :message="lightnessHistogramError.message" @retry="retryLightnessHistogram" />
+          <LightnessHistogramPanel v-else-if="lightnessHistogramResult" :histogram-data="lightnessHistogramResult" :log-scale="lightnessLogScale" />
           <AnalysisSpinner v-else />
         </div>
         <div>
@@ -48,7 +48,7 @@
             明度分布バー
             <InfoTooltip content="画像内の明度の占有比率を横棒で可視化したものです。各セグメントの幅がピクセル数の割合に対応します。" />
           </SectionLabel>
-          <LightnessDistributionBar v-if="lightnessHistogram(colorAwareImageData)" :data="lightnessHistogram(colorAwareImageData)!" />
+          <LightnessDistributionBar v-if="lightnessHistogramResult" :data="lightnessHistogramResult" />
           <AnalysisSpinner v-else />
         </div>
         <div>
@@ -66,16 +66,26 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import type { ColorAwareImageData } from '@/domain/colorSpace'
 import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
 import { Legend, InfoTooltip, Toggle, AnalysisErrorCard, AnalysisSpinner, ExplanationContent, SectionLabel } from '@/components/ui'
 import type { ExplanationSection } from '@/components/ui'
-import { isAnalysisError } from '@/types/analysis'
 import { LightnessMapPanel, LightnessHistogramPanel, LightnessDistributionBar } from '@/features/lightness-map'
-import { useImageStore } from '@/composables/useImageStore'
+import { useAnalysisResult } from '@/composables/useAnalysisResult'
 
-const { selectedImage, getAnalysis, retryAnalysis } = useImageStore()
 const lightnessLogScale = ref(false)
+
+const {
+  imageId,
+  error: lightnessMapError,
+  result: lightnessMapResult,
+  retry: retryLightnessMap,
+} = useAnalysisResult('lightnessMap')
+
+const {
+  error: lightnessHistogramError,
+  result: lightnessHistogramResult,
+  retry: retryLightnessHistogram,
+} = useAnalysisResult('lightnessHistogram')
 
 const explanationSections: ExplanationSection[] = [
   {
@@ -94,11 +104,4 @@ const explanationSections: ExplanationSection[] = [
     image: '/explanations/lightness-histogram.png',
   },
 ]
-
-function lightnessMap(source: ColorAwareImageData) {
-  return selectedImage.value ? getAnalysis(selectedImage.value.id, source, 'lightnessMap') : null
-}
-function lightnessHistogram(source: ColorAwareImageData) {
-  return selectedImage.value ? getAnalysis(selectedImage.value.id, source, 'lightnessHistogram') : null
-}
 </script>

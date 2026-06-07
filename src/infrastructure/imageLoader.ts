@@ -10,6 +10,9 @@ import type { ColorSpace, ColorAwareImageData } from '@/domain/colorSpace';
 
 export type ImageLoadError = 'FileReadError' | 'CanvasError' | 'InvalidImage';
 
+/** デコード後に許容する最大ピクセル数（4096×4096） */
+const MAX_PIXEL_COUNT = 4096 * 4096;
+
 /**
  * File を読み込み、Canvas に描画して ColorAwareImageData を返す。
  * Canvas の colorSpace オプションを使い、P3 画像を正しく読み取る。
@@ -60,6 +63,16 @@ function drawToCanvasAndGetImageData(
   img: HTMLImageElement,
   colorSpace: ColorSpace,
 ): Result<ColorAwareImageData, ImageLoadError> {
+  const pixelCount = img.width * img.height;
+  if (pixelCount > MAX_PIXEL_COUNT) {
+    return failure(
+      new BaseError<ImageLoadError>({
+        name: 'InvalidImage',
+        message: `Image dimensions too large (${img.width}×${img.height}). Maximum is ${MAX_PIXEL_COUNT.toLocaleString()} pixels.`,
+      }),
+    );
+  }
+
   const canvas = document.createElement('canvas');
   canvas.width = img.width;
   canvas.height = img.height;

@@ -55,7 +55,7 @@
           <AnalysisErrorCard
             v-if="currentError"
             :message="currentError.message"
-            @retry="retryAnalysis(imageId, 'colorClustering')"
+            @retry="retryClustering"
           />
           <template v-else-if="displayedResult">
             <ClusterBubbleChart
@@ -93,7 +93,13 @@ const MIN_MANUAL_PALETTE = 2
 /** 手動パレット指定時の最大値 */
 const MAX_PALETTE = 60
 
-const { images, selectedImage, getAnalysis, retryAnalysis, invalidateAnalysis } = useImageStore()
+const { images, selectedImage, getAnalysis, retryAnalysis } = useImageStore()
+
+function retryClustering() {
+  const id = imageId.value
+  if (!id) return
+  retryAnalysis(id, 'colorClustering', { paletteSize: currentPaletteSize.value })
+}
 
 const explanationSections: ExplanationSection[] = [
   {
@@ -248,7 +254,8 @@ function changePaletteSize(delta: number) {
 
   if (next > MAX_PALETTE) next = MAX_PALETTE
 
+  // スロットキーが paletteSize 別に分かれているため、
+  // サイズ変更は新スロットのキャッシュミス経由で自然に再計算される（invalidate 不要）
   paletteSizeByImage.set(id, next)
-  invalidateAnalysis(id, 'colorClustering')
 }
 </script>
