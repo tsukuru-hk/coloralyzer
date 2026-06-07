@@ -14,7 +14,8 @@
     <!-- グローバルナビゲーション -->
     <Sidebar />
     <!-- ルートに応じたページ（分析・デザインシステムなど） -->
-    <main class="flex-1 min-w-0 p-6 overflow-auto">
+    <!-- モバイルはボトムナビに隠れないよう下余白を確保する -->
+    <main class="flex-1 min-w-0 p-4 pb-24 md:p-6 md:pb-6 overflow-auto">
       <ErrorBoundary>
         <router-view />
       </ErrorBoundary>

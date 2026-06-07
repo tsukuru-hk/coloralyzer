@@ -1,9 +1,12 @@
 <template>
-  <!-- グローバル左ナビ：ロゴ + ルートリンク一覧 -->
-  <aside class="sticky top-0 flex h-screen w-16 flex-col border-r-2 border-border bg-card shrink-0">
-    <!-- アプリマーク -->
+  <!-- グローバルナビ：md 以上は左サイドバー、md 未満は画面下の固定タブバー -->
+  <aside
+    class="fixed bottom-0 inset-x-0 z-40 flex w-full flex-row border-t-2 border-border bg-card shrink-0 pb-[env(safe-area-inset-bottom)]
+           md:sticky md:top-0 md:bottom-auto md:inset-x-auto md:z-auto md:h-screen md:w-16 md:flex-col md:border-t-0 md:border-r-2 md:pb-0"
+  >
+    <!-- アプリマーク（モバイルでは非表示） -->
     <div
-      class="relative flex h-14 items-center justify-center border-b-2 border-border"
+      class="relative hidden h-14 items-center justify-center border-b-2 border-border md:flex"
       @mouseenter="playLottie"
       @mouseleave="stopLottie"
     >
@@ -34,22 +37,22 @@
       </div>
     </div>
     <!-- 主要ルート（分析ページ / デザインシステム） -->
-    <nav ref="navRef" class="relative flex-1 flex flex-col gap-1 p-1 pt-2">
-      <!-- スライドするアクティブハイライト --> 
+    <nav ref="navRef" class="relative flex-1 flex flex-row justify-around gap-1 p-1 md:flex-col md:justify-start md:pt-2">
+      <!-- スライドするアクティブハイライト -->
       <div
         v-if="highlightStyle"
-        class="absolute left-1 right-1 rounded-lg bg-primary pointer-events-none will-change-transform"
+        class="absolute rounded-lg bg-primary pointer-events-none will-change-transform"
         :style="highlightStyle"
       />
       <template v-for="(item, idx) in items" :key="item.type === 'divider' ? `divider-${idx}` : item.path">
-        <div v-if="item.type === 'divider'" class="my-1 border-t-2 border-border" />
+        <div v-if="item.type === 'divider'" class="mx-1 border-l-2 border-border md:mx-0 md:my-1 md:border-l-0 md:border-t-2" />
         <router-link
           v-else
           :ref="(el) => setItemRef(item.path, el as HTMLElement | null)"
           :to="item.path"
           :aria-label="item.label"
           :class="cn(
-            'relative z-[1] flex flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 transition-colors',
+            'relative z-[1] flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 transition-colors md:flex-none',
             isActive(item.path)
               ? 'text-white'
               : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
@@ -186,7 +189,7 @@ function setItemRef(path: RoutePath, el: unknown) {
   else itemRefs.delete(path)
 }
 
-/** アクティブ項目の位置にハイライトを移動 */
+/** アクティブ項目の位置にハイライトを移動（縦サイドバー / 横ボトムバー両対応） */
 function updateHighlight() {
   const activePath = route.path as RoutePath
   const el = itemRefs.get(activePath)
@@ -197,17 +200,26 @@ function updateHighlight() {
   }
   const navRect = nav.getBoundingClientRect()
   const elRect = el.getBoundingClientRect()
+  const x = elRect.left - navRect.left
   const y = elRect.top - navRect.top
   highlightStyle.value = {
     top: '0',
+    left: '0',
+    width: `${elRect.width}px`,
     height: `${elRect.height}px`,
-    transform: `translateY(${y}px)`,
-    transition: 'transform 300ms ease-out',
+    transform: `translate(${x}px, ${y}px)`,
+    transition: 'transform 300ms ease-out, width 300ms ease-out, height 300ms ease-out',
   }
 }
 
 onMounted(() => {
   nextTick(updateHighlight)
+  // レイアウト切り替え（縦⇔横）やウィンドウ幅変化で位置がずれるため再計算する
+  window.addEventListener('resize', updateHighlight)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateHighlight)
 })
 
 watch(() => route.path, () => {

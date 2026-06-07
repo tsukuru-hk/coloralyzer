@@ -34,8 +34,8 @@
     <div v-if="images.length > 0" class="mt-6 overflow-hidden rounded-xl border-2 border-border">
       <ImageGalleryBar />
 
-      <!-- Split Pane モード：ドラッグで比率調整可能 -->
-      <SplitPane v-if="selectedImage && splitPane" :default-ratio="0.3" :min-ratio="0.15" :max-ratio="0.85" :class="[paneHeight, 'bg-card']">
+      <!-- Split Pane モード：ドラッグで比率調整可能（md 以上のみ） -->
+      <SplitPane v-if="selectedImage && splitPane && isDesktop" :default-ratio="0.3" :min-ratio="0.15" :max-ratio="0.85" :class="[paneHeight, 'bg-card']">
         <template #left>
           <div class="relative h-full overflow-auto p-4">
             <SectionLabel>オリジナル画像</SectionLabel>
@@ -50,13 +50,26 @@
         </template>
       </SplitPane>
 
+      <!-- Split Pane モード（モバイル）：ドラッグ操作が不向きなため縦積みにフォールバック -->
+      <div v-else-if="selectedImage && splitPane" class="bg-card">
+        <div class="relative p-4">
+          <SectionLabel>オリジナル画像</SectionLabel>
+          <slot v-if="slots.left" name="left" :color-aware-image-data="selectedImage!.colorAwareImageData" />
+          <ImageCanvas v-else :image-data="selectedImage!.colorAwareImageData.imageData" />
+        </div>
+        <!-- 分析スロットは h-full 前提のため明示的な高さを与える -->
+        <div class="relative h-[55dvh] border-t-2 border-border">
+          <slot :color-aware-image-data="selectedImage.colorAwareImageData" />
+        </div>
+      </div>
+
       <!-- フルワイドモード：スロットに全幅を委ねる -->
       <div v-else-if="selectedImage && fullWidth" class="bg-card p-4">
         <slot :color-aware-image-data="selectedImage.colorAwareImageData" />
       </div>
 
-      <!-- 通常モード：固定 2 カラム -->
-      <div v-else-if="selectedImage" class="grid grid-cols-2 gap-6 bg-card p-4">
+      <!-- 通常モード：2 カラム（モバイルは縦積み） -->
+      <div v-else-if="selectedImage" class="grid grid-cols-1 gap-4 bg-card p-4 md:grid-cols-2 md:gap-6">
         <div>
           <SectionLabel>オリジナル画像</SectionLabel>
           <ImageCanvas :image-data="selectedImage.colorAwareImageData.imageData" />
@@ -70,12 +83,13 @@
     </div>
 
     <!-- 初回：画像未選択 — 画面中央にドロップゾーン -->
-    <div v-else class="flex flex-1 items-center justify-center" style="min-height: calc(100vh - 12rem)">
+    <div v-else class="flex flex-1 items-center justify-center min-h-[calc(100dvh-18rem)] md:min-h-[calc(100vh-12rem)]">
       <div class="w-full max-w-2xl">
         <div class="mb-4 flex justify-center">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 min-w-0">
             <div ref="uploadLottieRef" class="h-16 w-16 shrink-0" />
-            <p class="text-2xl font-bold text-muted-foreground whitespace-nowrap">{{ typedText }}<span class="invisible">{{ placeholderText.slice(typedCount) }}</span></p>
+            <!-- モバイルでは折り返し可（invisible スパンが全文分の幅を確保するためタイプ中もレイアウトが安定する） -->
+            <p class="text-lg font-bold text-muted-foreground md:text-2xl md:whitespace-nowrap">{{ typedText }}<span class="invisible">{{ placeholderText.slice(typedCount) }}</span></p>
           </div>
         </div>
         <DropZone class="aspect-[5/4]" @hover-change="onDropzoneHover" @files-selected="onFilesSelected" />
@@ -92,6 +106,7 @@ import ExplanationModal from '@/components/ui/ExplanationModal.vue'
 import ImageGalleryBar from '@/components/ui/ImageGalleryBar.vue'
 import ImageCanvas from '@/features/image-analysis/ImageCanvas.vue'
 import { useImageStore } from '@/composables/useImageStore'
+import { useMediaQuery } from '@/composables/useMediaQuery'
 import { useToast } from '@/composables/useToast'
 import { useLottie } from '@/composables/useLottie'
 import uploadWaitData from '@/assets/animations/LottieAnimeUploadWait.json'
@@ -121,6 +136,8 @@ const props = withDefaults(defineProps<{
 
 const slots = useSlots()
 const showExplanation = ref(false)
+/** md 以上か — SplitPane（ドラッグ操作）はデスクトップのみ有効にする */
+const isDesktop = useMediaQuery('(min-width: 768px)')
 const { images, selectedImage, loadProgress, canAddMore, addImage } = useImageStore()
 const { toast } = useToast()
 
