@@ -4,8 +4,33 @@
 import { createApp } from 'vue'
 import '@/assets/css/tailwind.css'
 import App from './App.vue'
-import router from './router'
+import router, { routeImports } from './router'
 import { useToast } from '@/composables/useToast'
+
+// --- 全ページチャンクの先読み ---
+// デプロイで旧ハッシュのチャンクがサーバーから消えても、メモリに載った後なら
+// タブ切り替えはネットワークに触れないため壊れない。
+const RELOADED_KEY = 'coloralyzer:chunk-reloaded'
+const prefetchAllRoutes = () => {
+  Promise.all(Object.values(routeImports).map((load) => load()))
+    // 全チャンクが揃ったら自動リロード保険をリセット（次のデプロイ跨ぎに備える）
+    .then(() => sessionStorage.removeItem(RELOADED_KEY))
+    .catch(() => {}) // 失敗してもタブ切り替え時に再試行される
+}
+if ('requestIdleCallback' in window) {
+  requestIdleCallback(prefetchAllRoutes, { timeout: 5000 })
+} else {
+  setTimeout(prefetchAllRoutes, 2000)
+}
+
+// 先読み完了前にデプロイを跨いでチャンク取得に失敗した場合の保険：一度だけ自動リロード。
+// リロード後も失敗する場合は ErrorBoundary（再読み込みボタン）に任せる。
+window.addEventListener('vite:preloadError', (e) => {
+  if (sessionStorage.getItem(RELOADED_KEY)) return
+  sessionStorage.setItem(RELOADED_KEY, '1')
+  e.preventDefault()
+  window.location.reload()
+})
 
 const app = createApp(App)
 
