@@ -1,13 +1,27 @@
 declare module 'culori' {
+  /** sRGB の色オブジェクト */
+  export type Rgb = { mode: 'rgb'; r: number; g: number; b: number; alpha?: number }
+
   /** RGB 系の色オブジェクト（sRGB / Display P3） */
   type RgbColor =
-    | { mode: 'rgb'; r: number; g: number; b: number }
+    | Rgb
     | { mode: 'p3'; r: number; g: number; b: number }
 
-  /** sRGB / Display P3 / CSS 文字列 → OKLCH 変換。無彩色では h が undefined（powerless hue）になる */
+  /** OKLCH の色オブジェクト。無彩色では h が undefined（powerless hue）になる */
+  type OklchColor = { mode: 'oklch'; l: number; c: number; h?: number | undefined }
+
+  /** sRGB / Display P3 / OKLCH / CSS 文字列 → OKLCH 変換 */
   export function oklch(
-    color: string | RgbColor
+    color: string | RgbColor | OklchColor
   ): { mode: 'oklch'; l: number; c: number; h: number | undefined } | undefined
+
+  /** 色が sRGB ガマット内に収まる（表示可能）かを判定する */
+  export function displayable(color: string | { mode: string; [key: string]: unknown }): boolean
+
+  /** 指定ガマット内かを判定する関数を返す（例: inGamut('p3')） */
+  export function inGamut(
+    mode?: string
+  ): (color: string | { mode: string; [key: string]: unknown }) => boolean
 
   export function converter(
     mode: string

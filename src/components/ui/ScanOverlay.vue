@@ -95,6 +95,7 @@ function animate(timestamp: number) {
   // パーティクル
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i]
+    if (!p) continue
     p.life -= dt / p.maxLife
     if (p.life <= 0) {
       particles.splice(i, 1)

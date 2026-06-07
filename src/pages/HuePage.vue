@@ -125,20 +125,4 @@ const hueResult = computed<HueAnalysisResult | null>(() => {
   return r != null && !isAnalysisError(r) ? r : null
 })
 
-// 支配的な色相のラベル
-const HUE_NAMES: [number, string][] = [
-  [15, '赤'], [45, '橙'], [75, '黄'], [105, '黄緑'],
-  [135, '緑'], [165, '青緑'], [195, '青緑'], [225, '青'],
-  [255, '青紫'], [285, '紫'], [315, '赤紫'], [345, '赤'],
-]
-
-const _dominantHue = computed(() => {
-  const sectors = hueResult.value?.sectors
-  if (!sectors || sectors.length === 0) return null
-  const max = sectors.reduce((a, b) => (a.ratio > b.ratio ? a : b))
-  if (max.ratio === 0) return null
-  const center = (max.hueStart + max.hueEnd) / 2
-  const name = HUE_NAMES.find(([boundary]) => center < boundary)?.[1] ?? '赤'
-  return `${name} (${Math.round(center)}°, ${(max.ratio * 100).toFixed(1)}%)`
-})
 </script>

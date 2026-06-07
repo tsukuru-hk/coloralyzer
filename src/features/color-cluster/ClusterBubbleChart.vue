@@ -3,7 +3,6 @@
   <div ref="containerRef" class="relative w-full overflow-x-auto">
     <svg
       v-if="renderGroups.length > 0 || renderBubbles.length > 0"
-      ref="svgRef"
       :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`"
       :style="{ width: '100%', height: props.height + 'px', display: 'block' }"
       preserveAspectRatio="xMidYMid meet"
@@ -82,7 +81,6 @@ const props = withDefaults(defineProps<{
 })
 
 const containerRef = ref<HTMLDivElement>()
-const svgRef = ref<SVGSVGElement>()
 
 // ─── カラーコードツールチップ ───
 
@@ -393,6 +391,7 @@ function buildLayout(data: ColorClusterResult, size: number): ClusterGroup[] {
 
   for (const node of nodes) {
     const group = groups[node.index]
+    if (!group) continue
     const dx = node.x - group.envelope.x
     const dy = node.y - group.envelope.y
     group.envelope.x = node.x
