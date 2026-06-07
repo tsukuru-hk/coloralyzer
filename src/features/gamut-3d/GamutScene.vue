@@ -7,9 +7,12 @@
       @set-mode="$emit('set-mode', $event)"
       @clear-brush="$emit('clear-brush')"
     />
+    <GamutViewControls v-if="showToolbar" @set-view="setViewPreset" />
     <TresCanvas v-if="isMounted" :clear-color="'#a0a0a0'">
-      <TresPerspectiveCamera :position="[7, 5, 7]" :fov="20" />
+      <TresPerspectiveCamera :position="initialCameraPosition" :fov="20" />
       <OrbitControls
+        ref="controlsRef"
+        :target="initialCameraTarget"
         :enable-damping="true"
         :damping-factor="0.08"
       />
@@ -35,14 +38,22 @@
 import { ref, shallowRef, onMounted, onBeforeUnmount, watch } from 'vue'
 import { TresCanvas } from '@tresjs/core'
 import { OrbitControls } from '@tresjs/cientos'
-import type { Group } from 'three'
+import type { Camera, Group, Vector3 } from 'three'
 import type { GamutPointCloudData } from '@/types/analysis'
 import type { ColorSpace } from '@/domain/colorSpace'
 import type { GamutMode } from './composables/useGamutBrush'
+import {
+  DEFAULT_CAMERA_POSITION,
+  DEFAULT_CAMERA_TARGET,
+  getSavedGamutCamera,
+  saveGamutCamera,
+} from './composables/gamutCameraState'
+import type { GamutViewPreset } from './composables/gamutCameraState'
 import GamutPointCloud from './GamutPointCloud.vue'
 import GamutBrushCloud from './GamutBrushCloud.vue'
 import GamutReferenceGrid from './GamutReferenceGrid.vue'
 import GamutToolbar from './GamutToolbar.vue'
+import GamutViewControls from './GamutViewControls.vue'
 
 /** スピンの総尺（秒） */
 const SPIN_DURATION = 2.0
@@ -56,9 +67,12 @@ const props = withDefaults(defineProps<{
   brushData: GamutPointCloudData
   /** ツールバー（自動/手動切替）を表示するか */
   showToolbar?: boolean
+  /** 再マウントをまたいでカメラアングルを保持するか（画像タブ切替時の比較用） */
+  persistCamera?: boolean
 }>(), {
   colorSpace: 'srgb',
   showToolbar: true,
+  persistCamera: false,
 })
 
 defineEmits<{
@@ -70,6 +84,43 @@ const isMounted = ref(false)
 onMounted(() => { isMounted.value = true })
 
 const spinGroupRef = shallowRef<Group | null>(null)
+
+/* ---------- camera ---------- */
+
+/** OrbitControls のうちこのコンポーネントが触る部分 */
+interface CameraControls {
+  object: Camera
+  target: Vector3
+  update: () => void
+}
+
+const controlsRef = shallowRef<{ instance?: CameraControls } | null>(null)
+
+// 前回保存したアングルがあれば復元した状態でマウントする（タブ切替対策）
+const savedCamera = props.persistCamera ? getSavedGamutCamera() : null
+const initialCameraPosition = savedCamera?.position ?? DEFAULT_CAMERA_POSITION
+const initialCameraTarget = savedCamera?.target ?? DEFAULT_CAMERA_TARGET
+
+function setViewPreset(view: GamutViewPreset): void {
+  const controls = controlsRef.value?.instance
+  if (!controls) return
+  // スピン中に押されても即座に固定アングルになるよう回転を止める
+  stopSpin()
+
+  const camera = controls.object
+  const target = controls.target
+  if (view === 'default') {
+    target.set(...DEFAULT_CAMERA_TARGET)
+    camera.position.set(...DEFAULT_CAMERA_POSITION)
+  } else {
+    // ズーム（注視点までの距離）を保ったまま真上/真下へ移動する。
+    // 上方向ベクトルと完全に一致すると OrbitControls が特異点になるため z をわずかにずらす。
+    const distance = camera.position.distanceTo(target)
+    const sign = view === 'top' ? 1 : -1
+    camera.position.set(target.x, target.y + sign * distance, target.z + distance * 1e-3)
+  }
+  controls.update()
+}
 
 let spinning = false
 let spinStartTime = -1
@@ -128,6 +179,11 @@ watch(() => props.mode, (next) => {
 })
 
 onBeforeUnmount(() => {
+  // アンマウント時点のアングルを保存し、次回マウント時に復元する
+  if (props.persistCamera) {
+    const controls = controlsRef.value?.instance
+    if (controls) saveGamutCamera(controls.object.position, controls.target)
+  }
   if (rafId) cancelAnimationFrame(rafId)
 })
 </script>

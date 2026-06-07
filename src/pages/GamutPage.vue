@@ -41,6 +41,7 @@
         :color-space="colorAwareImageData.colorSpace"
         :mode="mode"
         :brush-data="brushData"
+        :persist-camera="true"
         @set-mode="setMode"
         @clear-brush="clearBrushPoints"
       />
