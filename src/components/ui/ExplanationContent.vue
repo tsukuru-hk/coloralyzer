@@ -17,15 +17,15 @@
       </div>
     </div>
 
-    <!-- メインコンテンツ: 左メニュー + 右解説 -->
-    <div class="flex flex-1 overflow-hidden">
-      <!-- 左 1/4: メニュー -->
-      <nav class="w-[30%] shrink-0 overflow-y-auto border-r border-border p-3">
-        <ul class="space-y-1.5">
-          <li v-for="(item, idx) in sections" :key="idx">
+    <!-- メインコンテンツ: モバイルは上部チップ列 + 下解説、md以上は左メニュー + 右解説 -->
+    <div class="flex flex-1 flex-col overflow-hidden md:flex-row">
+      <!-- セクション切替: モバイルは横スクロールのタブ列、md以上は縦メニュー -->
+      <nav class="shrink-0 overflow-x-auto border-b border-border p-2 md:w-[30%] md:overflow-y-auto md:border-b-0 md:border-r md:p-3">
+        <ul class="flex gap-1.5 md:flex-col">
+          <li v-for="(item, idx) in sections" :key="idx" class="shrink-0">
             <button
               :class="[
-                'w-full rounded-lg px-4 py-3 text-left text-base transition-colors',
+                'whitespace-nowrap rounded-lg px-3 py-2 text-left text-sm transition-colors md:w-full md:whitespace-normal md:px-4 md:py-3 md:text-base',
                 activeIndex === idx
                   ? 'bg-primary text-white font-medium'
                   : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
@@ -38,8 +38,8 @@
         </ul>
       </nav>
 
-      <!-- 右 3/4: 解説内容 -->
-      <div class="flex-1 overflow-y-auto p-5">
+      <!-- 解説内容 -->
+      <div class="flex-1 overflow-y-auto p-4 md:p-5">
         <!-- メディアあり: 自然な高さで全体表示し、はみ出たらパネル側でスクロール -->
         <div v-if="activeSection?.video || activeSection?.image">
           <div class="overflow-hidden rounded-xl bg-muted">

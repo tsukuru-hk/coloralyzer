@@ -1,7 +1,8 @@
 <template>
   <!-- グローバル通知：`useToast` のキューを body 直下に重ね描画 -->
   <Teleport to="body">
-    <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
+    <!-- モバイルでは操作の邪魔にならないよう右上、デスクトップでは右下に表示 -->
+    <div class="fixed right-4 top-4 z-50 flex flex-col gap-2 md:bottom-4 md:top-auto">
       <TransitionGroup
         enter-active-class="transition-all duration-300 ease-out"
         enter-from-class="translate-x-full opacity-0"

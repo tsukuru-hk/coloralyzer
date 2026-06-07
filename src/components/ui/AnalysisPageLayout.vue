@@ -21,7 +21,8 @@
             解説
           </button>
         </div>
-        <p v-if="description" class="mt-1 text-sm text-muted-foreground">{{ description }}</p>
+        <!-- モバイルでは上部がテキストで詰まるため説明文を非表示にする -->
+        <p v-if="description" class="mt-1 hidden text-sm text-muted-foreground md:block">{{ description }}</p>
       </div>
     </div>
 
