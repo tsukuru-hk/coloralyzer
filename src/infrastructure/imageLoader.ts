@@ -7,6 +7,7 @@ import type { Result } from '@/core/result';
 import { success, failure } from '@/core/result';
 import { BaseError } from '@/core/result';
 import type { ColorSpace, ColorAwareImageData } from '@/domain/colorSpace';
+import { canvasSupportsP3 } from '@/infrastructure/displayCapabilityDetector';
 
 export type ImageLoadError = 'FileReadError' | 'CanvasError' | 'InvalidImage';
 
@@ -18,7 +19,7 @@ const MAX_PIXEL_COUNT = 4096 * 4096;
  * Canvas の colorSpace オプションを使い、P3 画像を正しく読み取る。
  * リサイズせず原寸で読み込むことで、補間による色のブレを防ぐ。
  * @param file 画像ファイル
- * @param colorSpace 使用する作業色空間
+ * @param colorSpace 画像の色空間（ICC/cICP から判定済み）
  */
 export async function loadImageToColorAwareImageData(
   file: File,
@@ -76,7 +77,10 @@ function drawToCanvasAndGetImageData(
   const canvas = document.createElement('canvas');
   canvas.width = img.width;
   canvas.height = img.height;
-  const canvasColorSpace = colorSpace === 'display-p3' ? 'display-p3' : 'srgb';
+  // P3 画像でも Canvas が P3 非対応なら sRGB にフォールバック（広色域はクリップされる）。
+  // 実際に描画した Canvas の色空間を返り値のタグにする（ピクセル値の解釈と一致させる）。
+  const canvasColorSpace: ColorSpace =
+    colorSpace === 'display-p3' && canvasSupportsP3() ? 'display-p3' : 'srgb';
   const ctx = canvas.getContext('2d', { colorSpace: canvasColorSpace });
   if (!ctx) {
     return failure(
@@ -89,7 +93,7 @@ function drawToCanvasAndGetImageData(
   ctx.drawImage(img, 0, 0);
   try {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    return success({ imageData, colorSpace });
+    return success({ imageData, colorSpace: canvasColorSpace });
   } catch (error) {
     return failure(
       new BaseError<ImageLoadError>({

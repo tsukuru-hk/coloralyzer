@@ -3,7 +3,7 @@
  * Infrastructure: ブラウザ API（matchMedia, Canvas）に依存。
  */
 
-import type { ColorSpace, DisplayGamut } from '@/domain/colorSpace'
+import type { DisplayGamut } from '@/domain/colorSpace'
 
 /**
  * ユーザーのディスプレイが対応する色域を検出する。
@@ -34,16 +34,4 @@ export function canvasSupportsP3(): boolean {
   } catch {
     return false
   }
-}
-
-/**
- * ディスプレイ能力と Canvas サポートから、最適な作業色空間を決定する。
- * P3 ディスプレイ + Canvas P3 サポート の両方が揃った場合のみ display-p3 を使う。
- */
-export function determineWorkingColorSpace(): ColorSpace {
-  const gamut = detectDisplayGamut()
-  if ((gamut === 'p3' || gamut === 'rec2020') && canvasSupportsP3()) {
-    return 'display-p3'
-  }
-  return 'srgb'
 }

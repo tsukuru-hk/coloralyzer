@@ -19,7 +19,16 @@
         </template>
       </ExplanationContent>
     </template>
-    <template #default>
+    <!-- オリジナル画像：ヒストグラム棒ホバー時は該当明度帯のみ表示 -->
+    <template #left="{ colorAwareImageData }">
+      <LightnessMaskedImage
+        :display-data="colorAwareImageData.imageData"
+        :lightness-source="colorAwareImageData"
+        :bin-count="binCount"
+        :active-bin="hoveredBin"
+      />
+    </template>
+    <template #default="{ colorAwareImageData }">
       <div v-if="imageId" class="space-y-4">
         <div>
           <div class="flex items-center justify-between gap-2">
@@ -34,20 +43,32 @@
             />
           </div>
           <AnalysisErrorCard v-if="lightnessMapError" :message="lightnessMapError.message" @retry="retryLightnessMap" />
-          <LightnessMapPanel v-else-if="lightnessMapResult" :lightness-map-data="lightnessMapResult" />
+          <LightnessMaskedImage
+            v-else-if="lightnessMapResult"
+            :display-data="lightnessMapResult"
+            :lightness-source="colorAwareImageData"
+            :bin-count="binCount"
+            :active-bin="hoveredBin"
+          />
           <AnalysisSpinner v-else class="aspect-square" />
         </div>
         <div>
           <SectionLabel>
             明度ヒストグラム
-            <InfoTooltip content="画像内の全ピクセルの OKLCH Lightness 値の分布を示すヒストグラムです。横軸が明度、縦軸がピクセル数を表します。" />
+            <InfoTooltip content="画像内の全ピクセルの OKLCH Lightness 値の分布を示すヒストグラムです。横軸が明度、縦軸がピクセル数を表します。棒にカーソルを重ねると、その明度帯のピクセルだけが画像に表示されます。" />
             <span class="ml-auto flex items-center gap-1 scale-75 origin-right">
               <span class="text-[10px] text-muted-foreground select-none">Log</span>
               <Toggle v-model="lightnessLogScale" />
             </span>
           </SectionLabel>
           <AnalysisErrorCard v-if="lightnessHistogramError" :message="lightnessHistogramError.message" @retry="retryLightnessHistogram" />
-          <LightnessHistogramPanel v-else-if="lightnessHistogramResult" :histogram-data="lightnessHistogramResult" :log-scale="lightnessLogScale" />
+          <LightnessHistogramPanel
+            v-else-if="lightnessHistogramResult"
+            :histogram-data="lightnessHistogramResult"
+            :log-scale="lightnessLogScale"
+            :interactive="true"
+            @hover-bin="hoveredBin = $event"
+          />
           <AnalysisSpinner v-else />
         </div>
         <div>
@@ -72,11 +93,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
 import { Legend, InfoTooltip, Toggle, AnalysisErrorCard, AnalysisSpinner, ExplanationContent, SectionLabel, DownloadButton } from '@/components/ui'
 import type { ExplanationSection } from '@/components/ui'
-import { LightnessMapPanel, LightnessHistogramPanel, LightnessDistributionBar } from '@/features/lightness-map'
+import { LightnessMaskedImage, LightnessHistogramPanel, LightnessDistributionBar } from '@/features/lightness-map'
 import { useAnalysisResult } from '@/composables/useAnalysisResult'
 import { useAnalysisPngExport } from '@/composables/useAnalysisPngExport'
 import { exportImageDataAsPng } from '@/infrastructure/pngExport'
@@ -85,6 +106,9 @@ import { EXPORT_SUFFIX } from '@/domain/exportFileName'
 const { exportPng, isExporting } = useAnalysisPngExport()
 
 const lightnessLogScale = ref(false)
+
+/** ヒストグラム棒ホバー中のビン番号。null なら全体表示 */
+const hoveredBin = ref<number | null>(null)
 
 /** 明度グレースケールを PNG として保存する */
 function downloadLightnessMap() {
@@ -106,6 +130,9 @@ const {
   result: lightnessHistogramResult,
   retry: retryLightnessHistogram,
 } = useAnalysisResult('lightnessHistogram')
+
+/** ヒストグラムのビン数。マスク側も同じ分割で帯を判定する */
+const binCount = computed(() => lightnessHistogramResult.value?.bins.length ?? 0)
 
 const explanationSections: ExplanationSection[] = [
   {

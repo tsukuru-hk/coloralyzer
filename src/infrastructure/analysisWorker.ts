@@ -21,7 +21,7 @@ self.onmessage = (e: MessageEvent<AnalysisRequest>) => {
 
   switch (analysisKey) {
     case 'chromaMap': {
-      const r = generateChromaMap(source)
+      const r = generateChromaMap(source, e.data.params?.chromaScale ?? 'gamut')
       if (r.isSuccess()) {
         response = { requestId, imageId, analysisKey, status: 'success', imageData: r.value }
         transferList.push(r.value.data.buffer)
@@ -31,7 +31,7 @@ self.onmessage = (e: MessageEvent<AnalysisRequest>) => {
       break
     }
     case 'chromaHistogram': {
-      const r = generateChromaHistogram(source)
+      const r = generateChromaHistogram(source, 64, e.data.params?.chromaScale ?? 'gamut')
       if (r.isSuccess()) {
         response = { requestId, imageId, analysisKey, status: 'success', histogramData: r.value }
       } else {

@@ -19,43 +19,72 @@
         </template>
       </ExplanationContent>
     </template>
-    <template #default>
+    <!-- オリジナル画像：ヒストグラム棒ホバー時は該当彩度帯のみ表示 -->
+    <template #left="{ colorAwareImageData }">
+      <ChromaMaskedImage
+        :display-data="colorAwareImageData.imageData"
+        :chroma-source="colorAwareImageData"
+        :bin-count="binCount"
+        :display-max="chromaDisplayMaxValue"
+        :active-bin="hoveredBin"
+      />
+    </template>
+    <template #default="{ colorAwareImageData }">
       <div v-if="imageId" class="space-y-4">
         <div>
           <div class="flex items-center justify-between gap-2">
             <SectionLabel>
               彩度グレースケール
-              <InfoTooltip content="OKLCH の Chroma 値を 0〜1 に正規化し、グレースケールで可視化したものです。白いほど彩度が高く、黒いほど無彩色に近いことを示します。" />
+              <InfoTooltip content="各ピクセルの OKLCH Chroma を彩度上限で線形正規化し、グレースケール化したものです（白いほど彩度が高く、黒いほど無彩色）。正規化の上限は『画像色域基準』では作業色空間（sRGB / P3）のガマット最大彩度、『OKLCH絶対』では色空間によらない固定値を使います。画像内の最大彩度では正規化しないため、画像間で明るさを比較できます。" />
             </SectionLabel>
-            <DownloadButton
-              v-if="chromaMapResult"
-              :disabled="isExporting"
-              @click="downloadChromaMap"
-            />
+            <div class="flex items-center gap-2">
+              <SegmentedControl
+                v-model="chromaScale"
+                :options="chromaScaleOptions"
+              />
+              <DownloadButton
+                v-if="chromaMapResult"
+                :disabled="isExporting"
+                @click="downloadChromaMap"
+              />
+            </div>
           </div>
           <AnalysisErrorCard v-if="chromaMapError" :message="chromaMapError.message" @retry="retryChromaMap" />
-          <ChromaMapPanel v-else-if="chromaMapResult" :chroma-map-data="chromaMapResult" />
+          <ChromaMaskedImage
+            v-else-if="chromaMapResult"
+            :display-data="chromaMapResult"
+            :chroma-source="colorAwareImageData"
+            :bin-count="binCount"
+            :display-max="chromaDisplayMaxValue"
+            :active-bin="hoveredBin"
+          />
           <AnalysisSpinner v-else class="aspect-square" />
         </div>
         <div>
           <SectionLabel>
             彩度ヒストグラム
-            <InfoTooltip content="画像内の全ピクセルの OKLCH Chroma 値の分布を示すヒストグラムです。横軸が彩度、縦軸がピクセル数を表します。" />
+            <InfoTooltip content="画像内の全ピクセルの OKLCH Chroma 値の分布を示すヒストグラムです。横軸が彩度、縦軸がピクセル数を表します。棒にカーソルを重ねると、その彩度帯のピクセルだけが画像に表示されます。" />
             <span class="ml-auto flex items-center gap-1 scale-75 origin-right">
               <span class="text-[10px] text-muted-foreground select-none">Log</span>
               <Toggle v-model="chromaLogScale" />
             </span>
           </SectionLabel>
           <AnalysisErrorCard v-if="chromaHistogramError" :message="chromaHistogramError.message" @retry="retryChromaHistogram" />
-          <ChromaHistogramPanel v-else-if="chromaHistogramResult" :histogram-data="chromaHistogramResult" :log-scale="chromaLogScale" />
+          <ChromaHistogramPanel
+            v-else-if="chromaHistogramResult"
+            :histogram-data="chromaHistogramResult"
+            :log-scale="chromaLogScale"
+            :interactive="true"
+            @hover-bin="hoveredBin = $event"
+          />
           <AnalysisSpinner v-else />
         </div>
         <div>
           <Legend
             title="Chroma (彩度)"
             min-label="0 (無彩色)"
-            max-label="0.4+ (高彩度)"
-            gradient="linear-gradient(to right, oklch(0.55 0 0), oklch(0.84 0.4 145))"
+            :max-label="chromaMaxLabel"
+            gradient="linear-gradient(to right, #000, #fff)"
           />
         </div>
       </div>
@@ -64,19 +93,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
-import { Legend, InfoTooltip, Toggle, AnalysisSpinner, AnalysisErrorCard, ExplanationContent, SectionLabel, DownloadButton } from '@/components/ui'
-import type { ExplanationSection } from '@/components/ui'
-import { ChromaMapPanel, ChromaHistogramPanel } from '@/features/grayscale-map'
+import { Legend, InfoTooltip, Toggle, SegmentedControl, AnalysisSpinner, AnalysisErrorCard, ExplanationContent, SectionLabel, DownloadButton } from '@/components/ui'
+import type { ExplanationSection, SegmentOption } from '@/components/ui'
+import type { ChromaScaleBasis } from '@/domain/oklch'
+import { ChromaMaskedImage, ChromaHistogramPanel } from '@/features/grayscale-map'
 import { useAnalysisResult } from '@/composables/useAnalysisResult'
+import { useImageStore } from '@/composables/useImageStore'
 import { useAnalysisPngExport } from '@/composables/useAnalysisPngExport'
 import { exportImageDataAsPng } from '@/infrastructure/pngExport'
 import { EXPORT_SUFFIX } from '@/domain/exportFileName'
 
 const { exportPng, isExporting } = useAnalysisPngExport()
+const { colorAwareImageData } = useImageStore()
 
 const chromaLogScale = ref(false)
+
+/** 彩度の正規化基準。gamut=作業色空間のガマット最大、absolute=OKLCH 絶対最大 */
+const chromaScale = ref<ChromaScaleBasis>('gamut')
+const chromaScaleOptions: ReadonlyArray<SegmentOption<ChromaScaleBasis>> = [
+  { value: 'gamut', label: '画像色域基準' },
+  { value: 'absolute', label: 'OKLCH絶対' },
+]
+/** chromaMap / chromaHistogram に渡す分析パラメータ（基準ごとに別キャッシュ） */
+const chromaParams = computed(() => ({ chromaScale: chromaScale.value }))
+
+/** ヒストグラム棒ホバー中のビン番号。null なら全体表示 */
+const hoveredBin = ref<number | null>(null)
 
 /** 彩度グレースケールを PNG として保存する */
 function downloadChromaMap() {
@@ -91,13 +135,27 @@ const {
   error: chromaMapError,
   result: chromaMapResult,
   retry: retryChromaMap,
-} = useAnalysisResult('chromaMap')
+} = useAnalysisResult('chromaMap', chromaParams)
 
 const {
   error: chromaHistogramError,
   result: chromaHistogramResult,
   retry: retryChromaHistogram,
-} = useAnalysisResult('chromaHistogram')
+} = useAnalysisResult('chromaHistogram', chromaParams)
+
+/** ヒストグラムのビン数。マスク側も同じ分割で帯を判定する */
+const binCount = computed(() => chromaHistogramResult.value?.bins.length ?? 0)
+
+/** 正規化上限（ヒストグラムの domain 上限）。マスクのビン割り当てと凡例に使う */
+const chromaDisplayMaxValue = computed(() => chromaHistogramResult.value?.domain[1] ?? 0)
+
+/** 凡例右端ラベル。現在の基準（色域 or OKLCH絶対）と実際の上限値を示す */
+const chromaMaxLabel = computed(() => {
+  const dm = chromaDisplayMaxValue.value.toFixed(2)
+  if (chromaScale.value === 'absolute') return `${dm} (OKLCH絶対最大)`
+  const space = colorAwareImageData.value?.colorSpace === 'display-p3' ? 'P3' : 'sRGB'
+  return `${dm} (${space}色域最大)`
+})
 
 const explanationSections: ExplanationSection[] = [
   {

@@ -12,7 +12,7 @@ export interface HistogramBin {
 export interface HistogramData {
   bins: HistogramBin[]
   totalPixels: number
-  /** x 軸の範囲 (例: lightness [0, 1], chroma [0, maxChroma]) */
+  /** x 軸の範囲 (例: lightness [0, 1], chroma [0, displayMax]) */
   domain: [number, number]
 }
 

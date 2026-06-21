@@ -1,12 +1,11 @@
 import { ref, shallowRef, computed } from 'vue'
-import type { ColorSpace, ColorAwareImageData } from '@/domain/colorSpace'
+import type { ColorAwareImageData } from '@/domain/colorSpace'
 import type { AnalysisKey, AnalysisResult, AnalysisError } from '@/types/analysis'
 import type { AnalysisParams } from '@/infrastructure/analysisWorkerProtocol'
 import { isAnalysisError } from '@/types/analysis'
 import { loadImageUseCase } from '@/application/useCase/loadImageUseCase'
 import { requestAnalysis, cancelByImageId } from '@/infrastructure/analysisWorkerClient'
 import type { AnalysisResponse } from '@/infrastructure/analysisWorkerProtocol'
-import { determineWorkingColorSpace } from '@/infrastructure/displayCapabilityDetector'
 import { useToast } from '@/composables/useToast'
 
 /** ギャラリーに保持する画像の上限（タブ過多・メモリを抑える） */
@@ -33,9 +32,6 @@ const inFlightSet = shallowRef(new Set<string>())
 /** スロットごとに最後に dispatch した requestId（古い Worker 応答を無視する） */
 const latestRequestIdBySlot = new Map<string, string>()
 
-/** 起動時に一度だけ判定する作業色空間 */
-const workingColorSpace = ref<ColorSpace>(determineWorkingColorSpace())
-
 const selectedImage = computed(() =>
   images.value.find((img) => img.id === selectedId.value) ?? null,
 )
@@ -45,12 +41,16 @@ const canAddMore = computed(() => images.value.length < MAX_IMAGES)
 
 /**
  * キャッシュ・in-flight 用スロットキー。
- * colorClustering は paletteSize ごとに別スロットとする。
+ * colorClustering は paletteSize ごと、chroma 系は正規化基準ごとに別スロットとする。
  */
 function analysisSlotKey(imageId: string, key: AnalysisKey, params?: AnalysisParams): string {
   if (key === 'colorClustering') {
     const ps = params?.paletteSize ?? 0
     return `${imageId}::${key}::ps=${ps}`
+  }
+  if (key === 'chromaMap' || key === 'chromaHistogram') {
+    const cs = params?.chromaScale ?? 'gamut'
+    return `${imageId}::${key}::cs=${cs}`
   }
   return `${imageId}::${key}`
 }
@@ -126,7 +126,7 @@ export function useImageStore() {
 
     loadProgress.value = 'loading'
 
-    const result = await loadImageUseCase(file, workingColorSpace.value)
+    const result = await loadImageUseCase(file)
 
     if (result.isFailure()) {
       toast({ title: 'エラー', description: result.error.message, variant: 'error' })
@@ -323,7 +323,6 @@ export function useImageStore() {
     colorAwareImageData,
     canAddMore,
     loadProgress,
-    workingColorSpace,
     addImage,
     removeImage,
     selectImage,

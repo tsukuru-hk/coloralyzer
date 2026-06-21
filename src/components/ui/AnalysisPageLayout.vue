@@ -73,7 +73,8 @@
       <div v-else-if="selectedImage" class="grid grid-cols-1 gap-4 bg-card p-4 md:grid-cols-2 md:gap-6">
         <div>
           <SectionLabel>オリジナル画像</SectionLabel>
-          <ImageCanvas :image-data="selectedImage.colorAwareImageData.imageData" />
+          <slot v-if="slots.left" name="left" :color-aware-image-data="selectedImage.colorAwareImageData" />
+          <ImageCanvas v-else :image-data="selectedImage.colorAwareImageData.imageData" />
         </div>
         <div>
           <SectionLabel v-if="analysisTitle">{{ analysisTitle }}</SectionLabel>
