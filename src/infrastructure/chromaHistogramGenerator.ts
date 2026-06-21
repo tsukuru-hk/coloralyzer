@@ -10,11 +10,11 @@ import type { HistogramBin, HistogramData, HistogramError } from './histogramTyp
 /**
  * 画像の各ピクセルの OKLCH chroma 値を集計し、ヒストグラムデータを返す。
  * @param source 色空間情報付き入力画像
- * @param binCount ビン数 (デフォルト 256)
+ * @param binCount ビン数 (デフォルト 64 — 明度ヒストグラムと粒度を揃える)
  */
 export function generateChromaHistogram(
   source: ColorAwareImageData,
-  binCount: number = 256,
+  binCount: number = 64,
 ): Result<HistogramData, HistogramError> {
   const { data, width, height } = source.imageData
   const pixelCount = width * height
