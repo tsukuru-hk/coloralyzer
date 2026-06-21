@@ -3,6 +3,7 @@
   <div ref="containerRef" class="relative w-full overflow-x-auto">
     <svg
       v-if="renderGroups.length > 0 || renderBubbles.length > 0"
+      ref="svgRef"
       :viewBox="`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`"
       :style="{ width: '100%', height: props.height + 'px', display: 'block' }"
       preserveAspectRatio="xMidYMid meet"
@@ -81,6 +82,14 @@ const props = withDefaults(defineProps<{
 })
 
 const containerRef = ref<HTMLDivElement>()
+const svgRef = ref<SVGSVGElement>()
+
+/** PNG エクスポート用に描画中の SVG 要素を返す（未描画時は null） */
+function getSvgElement(): SVGSVGElement | null {
+  return svgRef.value ?? null
+}
+
+defineExpose({ getSvgElement })
 
 // ─── カラーコードツールチップ ───
 

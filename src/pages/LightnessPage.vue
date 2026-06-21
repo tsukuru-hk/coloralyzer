@@ -22,10 +22,16 @@
     <template #default>
       <div v-if="imageId" class="space-y-4">
         <div>
-          <SectionLabel>
-            明度グレースケール
-            <InfoTooltip content="OKLCH の Lightness 値をそのままグレースケールで可視化したものです。白いほど明るく、黒いほど暗いピクセルであることを示します。" />
-          </SectionLabel>
+          <div class="flex items-center justify-between gap-2">
+            <SectionLabel>
+              明度グレースケール
+              <InfoTooltip content="OKLCH の Lightness 値をそのままグレースケールで可視化したものです。白いほど明るく、黒いほど暗いピクセルであることを示します。" />
+            </SectionLabel>
+            <DownloadButton
+              v-if="lightnessMapResult"
+              @click="downloadLightnessMap"
+            />
+          </div>
           <AnalysisErrorCard v-if="lightnessMapError" :message="lightnessMapError.message" @retry="retryLightnessMap" />
           <LightnessMapPanel v-else-if="lightnessMapResult" :lightness-map-data="lightnessMapResult" />
           <AnalysisSpinner v-else class="aspect-square" />
@@ -67,12 +73,33 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
-import { Legend, InfoTooltip, Toggle, AnalysisErrorCard, AnalysisSpinner, ExplanationContent, SectionLabel } from '@/components/ui'
+import { Legend, InfoTooltip, Toggle, AnalysisErrorCard, AnalysisSpinner, ExplanationContent, SectionLabel, DownloadButton } from '@/components/ui'
 import type { ExplanationSection } from '@/components/ui'
 import { LightnessMapPanel, LightnessHistogramPanel, LightnessDistributionBar } from '@/features/lightness-map'
 import { useAnalysisResult } from '@/composables/useAnalysisResult'
+import { useImageStore } from '@/composables/useImageStore'
+import { useToast } from '@/composables/useToast'
+import { exportImageDataAsPng } from '@/infrastructure/pngExport'
+import { buildExportFileName, EXPORT_SUFFIX } from '@/domain/exportFileName'
+
+const { selectedImage } = useImageStore()
+const { toast } = useToast()
 
 const lightnessLogScale = ref(false)
+
+/** 明度グレースケールを PNG として保存する */
+async function downloadLightnessMap() {
+  const data = lightnessMapResult.value
+  const fileName = selectedImage.value?.fileName
+  if (!data || !fileName) return
+  const result = await exportImageDataAsPng(
+    data,
+    buildExportFileName(fileName, EXPORT_SUFFIX.lightnessGrayscale),
+  )
+  if (result.isFailure()) {
+    toast({ title: 'ダウンロードに失敗しました', description: result.error.message, variant: 'error' })
+  }
+}
 
 const {
   imageId,

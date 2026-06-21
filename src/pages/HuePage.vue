@@ -30,11 +30,17 @@
       <template v-else-if="hueResult">
         <!-- 右ペイン全体を 3D 地形チャートで埋める -->
         <HueTerrainChart
+          ref="hueChartRef"
           :data="hueResult"
           :active-band="activeBand"
           :log-scale="logScale"
           class="h-full w-full"
         />
+        <!-- 分析タイトル + PNG ダウンロード（オーバーレイ） -->
+        <div class="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-2">
+          <span class="rounded-lg border border-white/20 bg-black/40 px-3 py-1 text-sm font-semibold text-white/90 backdrop-blur-sm">色相3D</span>
+          <DownloadButton variant="overlay" @click="downloadHue3d" />
+        </div>
         <!-- 有彩色ピクセルなしオーバーレイ -->
         <div
           v-if="hueResult.totalChromaticPixels === 0"
@@ -69,12 +75,15 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref } from 'vue'
 import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
-import { AnalysisSpinner, AnalysisErrorCard, Toggle, ExplanationContent } from '@/components/ui'
+import { AnalysisSpinner, AnalysisErrorCard, Toggle, ExplanationContent, DownloadButton } from '@/components/ui'
 import type { ExplanationSection } from '@/components/ui'
 import { LightnessBandToggle } from '@/features/hue-analysis'
 import { isAnalysisError } from '@/types/analysis'
 import type { HueAnalysisResult } from '@/types/hueAnalysis'
 import { useImageStore } from '@/composables/useImageStore'
+import { useToast } from '@/composables/useToast'
+import { exportCanvasAsPng } from '@/infrastructure/pngExport'
+import { buildExportFileName, EXPORT_SUFFIX } from '@/domain/exportFileName'
 
 const HueTerrainChart = defineAsyncComponent(() =>
   import('@/features/hue-analysis/HueTerrainChart.vue'),
@@ -84,6 +93,24 @@ const LightnessBandPreview = defineAsyncComponent(() =>
 )
 
 const { selectedImage, getAnalysis, retryAnalysis } = useImageStore()
+const { toast } = useToast()
+
+/** 色相3Dチャート（PNG エクスポート用の Canvas 取得に使用） */
+const hueChartRef = ref<{ captureCanvas: () => HTMLCanvasElement | null } | null>(null)
+
+/** 色相3Dを PNG として保存する */
+async function downloadHue3d() {
+  const canvas = hueChartRef.value?.captureCanvas()
+  const fileName = selectedImage.value?.fileName
+  if (!canvas || !fileName) return
+  const result = await exportCanvasAsPng(
+    canvas,
+    buildExportFileName(fileName, EXPORT_SUFFIX.hue3d),
+  )
+  if (result.isFailure()) {
+    toast({ title: 'ダウンロードに失敗しました', description: result.error.message, variant: 'error' })
+  }
+}
 
 const explanationSections: ExplanationSection[] = [
   {

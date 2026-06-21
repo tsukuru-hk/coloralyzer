@@ -22,10 +22,16 @@
     <template #default>
       <div v-if="imageId" class="space-y-4">
         <div>
-          <SectionLabel>
-            彩度グレースケール
-            <InfoTooltip content="OKLCH の Chroma 値を 0〜1 に正規化し、グレースケールで可視化したものです。白いほど彩度が高く、黒いほど無彩色に近いことを示します。" />
-          </SectionLabel>
+          <div class="flex items-center justify-between gap-2">
+            <SectionLabel>
+              彩度グレースケール
+              <InfoTooltip content="OKLCH の Chroma 値を 0〜1 に正規化し、グレースケールで可視化したものです。白いほど彩度が高く、黒いほど無彩色に近いことを示します。" />
+            </SectionLabel>
+            <DownloadButton
+              v-if="chromaMapResult"
+              @click="downloadChromaMap"
+            />
+          </div>
           <AnalysisErrorCard v-if="chromaMapError" :message="chromaMapError.message" @retry="retryChromaMap" />
           <ChromaMapPanel v-else-if="chromaMapResult" :chroma-map-data="chromaMapResult" />
           <AnalysisSpinner v-else class="aspect-square" />
@@ -59,12 +65,33 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
-import { Legend, InfoTooltip, Toggle, AnalysisSpinner, AnalysisErrorCard, ExplanationContent, SectionLabel } from '@/components/ui'
+import { Legend, InfoTooltip, Toggle, AnalysisSpinner, AnalysisErrorCard, ExplanationContent, SectionLabel, DownloadButton } from '@/components/ui'
 import type { ExplanationSection } from '@/components/ui'
 import { ChromaMapPanel, ChromaHistogramPanel } from '@/features/grayscale-map'
 import { useAnalysisResult } from '@/composables/useAnalysisResult'
+import { useImageStore } from '@/composables/useImageStore'
+import { useToast } from '@/composables/useToast'
+import { exportImageDataAsPng } from '@/infrastructure/pngExport'
+import { buildExportFileName, EXPORT_SUFFIX } from '@/domain/exportFileName'
+
+const { selectedImage } = useImageStore()
+const { toast } = useToast()
 
 const chromaLogScale = ref(false)
+
+/** 彩度グレースケールを PNG として保存する */
+async function downloadChromaMap() {
+  const data = chromaMapResult.value
+  const fileName = selectedImage.value?.fileName
+  if (!data || !fileName) return
+  const result = await exportImageDataAsPng(
+    data,
+    buildExportFileName(fileName, EXPORT_SUFFIX.chromaGrayscale),
+  )
+  if (result.isFailure()) {
+    toast({ title: 'ダウンロードに失敗しました', description: result.error.message, variant: 'error' })
+  }
+}
 
 const {
   imageId,

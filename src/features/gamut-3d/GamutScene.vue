@@ -1,5 +1,5 @@
 <template>
-  <div class="absolute inset-0">
+  <div ref="rootRef" class="absolute inset-0">
     <GamutToolbar
       v-if="showToolbar"
       :mode="mode"
@@ -8,7 +8,7 @@
       @clear-brush="$emit('clear-brush')"
     />
     <GamutViewControls v-if="showToolbar" @set-view="setViewPreset" />
-    <TresCanvas v-if="isMounted" :clear-color="'#a0a0a0'">
+    <TresCanvas v-if="isMounted" :clear-color="'#a0a0a0'" :preserve-drawing-buffer="true">
       <TresPerspectiveCamera :position="initialCameraPosition" :fov="20" />
       <OrbitControls
         ref="controlsRef"
@@ -82,6 +82,15 @@ defineEmits<{
 
 const isMounted = ref(false)
 onMounted(() => { isMounted.value = true })
+
+const rootRef = ref<HTMLElement | null>(null)
+
+/** PNG エクスポート用に WebGL の Canvas 要素を返す（未マウント時は null） */
+function captureCanvas(): HTMLCanvasElement | null {
+  return rootRef.value?.querySelector('canvas') ?? null
+}
+
+defineExpose({ captureCanvas })
 
 const spinGroupRef = shallowRef<Group | null>(null)
 

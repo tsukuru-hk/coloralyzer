@@ -5,10 +5,11 @@
     蜘蛛の巣状の色付きグリッドで色相・彩度のガイドを表示。
     外周に土星リング風の色相環。
   -->
-  <div class="relative w-full" :style="height ? { height: height + 'px' } : undefined" :class="{ 'h-full': !height }">
+  <div ref="rootRef" class="relative w-full" :style="height ? { height: height + 'px' } : undefined" :class="{ 'h-full': !height }">
     <TresCanvas
       v-if="isMounted && terrainMesh"
       :clear-color="'#808080'"
+      :preserve-drawing-buffer="true"
       :style="{ width: '100%', height: '100%' }"
     >
       <primitive :object="camera" />
@@ -865,6 +866,15 @@ function updateHueRingColors() {
 let pendingAnimation = false
 
 const isMounted = ref(false)
+
+const rootRef = ref<HTMLElement | null>(null)
+
+/** PNG エクスポート用に WebGL の Canvas 要素を返す（未マウント時は null） */
+function captureCanvas(): HTMLCanvasElement | null {
+  return rootRef.value?.querySelector('canvas') ?? null
+}
+
+defineExpose({ captureCanvas })
 
 // 段階的構築のキャンセル用
 let deferredBuildId = 0

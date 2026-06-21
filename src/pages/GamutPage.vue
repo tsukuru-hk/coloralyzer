@@ -35,30 +35,39 @@
     </template>
     <template #default="{ colorAwareImageData }">
       <AnalysisErrorCard v-if="pointCloudError" :message="pointCloudError.message" @retry="retryPointCloud" />
-      <GamutScene
-        v-else-if="pointCloudResult"
-        :point-cloud-data="pointCloudResult"
-        :color-space="colorAwareImageData.colorSpace"
-        :mode="mode"
-        :brush-data="brushData"
-        :persist-camera="true"
-        @set-mode="setMode"
-        @clear-brush="clearBrushPoints"
-      />
+      <template v-else-if="pointCloudResult">
+        <GamutScene
+          ref="gamutSceneRef"
+          :point-cloud-data="pointCloudResult"
+          :color-space="colorAwareImageData.colorSpace"
+          :mode="mode"
+          :brush-data="brushData"
+          :persist-camera="true"
+          @set-mode="setMode"
+          @clear-brush="clearBrushPoints"
+        />
+        <!-- 分析タイトル + PNG ダウンロード（オーバーレイ） -->
+        <div class="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-2">
+          <span class="rounded-lg border border-white/20 bg-black/40 px-3 py-1 text-sm font-semibold text-white/90 backdrop-blur-sm">3Dガマット</span>
+          <DownloadButton variant="overlay" @click="downloadGamut3d" />
+        </div>
+      </template>
       <AnalysisSpinner v-else />
     </template>
   </AnalysisPageLayout>
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent, watch } from 'vue'
-import { AnalysisPageLayout, AnalysisSpinner, AnalysisErrorCard, ExplanationContent } from '@/components/ui'
+import { computed, defineAsyncComponent, ref, watch } from 'vue'
+import { AnalysisPageLayout, AnalysisSpinner, AnalysisErrorCard, ExplanationContent, DownloadButton } from '@/components/ui'
 import type { ExplanationSection } from '@/components/ui'
 import GamutBrushOverlay from '@/features/gamut-3d/GamutBrushOverlay.vue'
 import ImageCanvas from '@/features/image-analysis/ImageCanvas.vue'
 import { useImageStore } from '@/composables/useImageStore'
 import { useAnalysisResult } from '@/composables/useAnalysisResult'
 import { useToast } from '@/composables/useToast'
+import { exportCanvasAsPng } from '@/infrastructure/pngExport'
+import { buildExportFileName, EXPORT_SUFFIX } from '@/domain/exportFileName'
 import {
   useGamutBrush,
   MAX_BRUSH_POINTS,
@@ -70,6 +79,23 @@ const GamutScene = defineAsyncComponent(() =>
 
 const { selectedImage, images } = useImageStore()
 const { toast } = useToast()
+
+/** 3Dガマットシーン（PNG エクスポート用の Canvas 取得に使用） */
+const gamutSceneRef = ref<{ captureCanvas: () => HTMLCanvasElement | null } | null>(null)
+
+/** 3Dガマットを PNG として保存する */
+async function downloadGamut3d() {
+  const canvas = gamutSceneRef.value?.captureCanvas()
+  const fileName = selectedImage.value?.fileName
+  if (!canvas || !fileName) return
+  const result = await exportCanvasAsPng(
+    canvas,
+    buildExportFileName(fileName, EXPORT_SUFFIX.gamut3d),
+  )
+  if (result.isFailure()) {
+    toast({ title: 'ダウンロードに失敗しました', description: result.error.message, variant: 'error' })
+  }
+}
 
 const {
   error: pointCloudError,

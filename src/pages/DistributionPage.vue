@@ -22,11 +22,17 @@
     <template #default>
       <div class="space-y-4">
         <div>
-          <div class="mb-2 flex items-center justify-between">
-            <SectionLabel>
-              カラーパレット
-              <InfoTooltip content="OKLCH 知覚色空間で色相・明度・彩度をグリッド分割し、画像に使われている色を自動的にパレットとして抽出しています。" />
-            </SectionLabel>
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <SectionLabel>
+                カラーパレット
+                <InfoTooltip content="OKLCH 知覚色空間で色相・明度・彩度をグリッド分割し、画像に使われている色を自動的にパレットとして抽出しています。" />
+              </SectionLabel>
+              <DownloadButton
+                v-if="displayedResult"
+                @click="downloadColorBubble"
+              />
+            </div>
             <!-- パレット色数ステッパー -->
             <div class="flex items-center gap-1.5">
               <span class="text-xs text-muted-foreground">パレット数</span>
@@ -59,6 +65,7 @@
           />
           <template v-else-if="displayedResult">
             <ClusterBubbleChart
+              ref="bubbleChartRef"
               :key="imageId"
               :data="displayedResult"
               :height="480"
@@ -75,14 +82,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent, reactive, shallowRef, watch } from 'vue'
+import { computed, defineAsyncComponent, reactive, ref, shallowRef, watch } from 'vue'
 import type { ColorClusterResult } from '@/domain/colorCluster'
 import AnalysisPageLayout from '@/components/ui/AnalysisPageLayout.vue'
-import { InfoTooltip, AnalysisSpinner, AnalysisErrorCard, ExplanationContent, SectionLabel } from '@/components/ui'
+import { InfoTooltip, AnalysisSpinner, AnalysisErrorCard, ExplanationContent, SectionLabel, DownloadButton } from '@/components/ui'
 import type { ExplanationSection } from '@/components/ui'
 import { ClusterRatioBar } from '@/features/color-cluster'
 import { isAnalysisError } from '@/types/analysis'
 import { useImageStore } from '@/composables/useImageStore'
+import { useToast } from '@/composables/useToast'
+import { exportSvgAsPng } from '@/infrastructure/pngExport'
+import { buildExportFileName, EXPORT_SUFFIX } from '@/domain/exportFileName'
 
 const ClusterBubbleChart = defineAsyncComponent(() =>
   import('@/features/color-cluster/ClusterBubbleChart.vue'),
@@ -94,6 +104,24 @@ const MIN_MANUAL_PALETTE = 2
 const MAX_PALETTE = 60
 
 const { images, selectedImage, getAnalysis, retryAnalysis } = useImageStore()
+const { toast } = useToast()
+
+/** カラーバブルチャート（PNG エクスポート用の SVG 取得に使用） */
+const bubbleChartRef = ref<{ getSvgElement: () => SVGSVGElement | null } | null>(null)
+
+/** カラーバブルを PNG として保存する */
+async function downloadColorBubble() {
+  const svg = bubbleChartRef.value?.getSvgElement()
+  const fileName = selectedImage.value?.fileName
+  if (!svg || !fileName) return
+  const result = await exportSvgAsPng(
+    svg,
+    buildExportFileName(fileName, EXPORT_SUFFIX.colorBubble),
+  )
+  if (result.isFailure()) {
+    toast({ title: 'ダウンロードに失敗しました', description: result.error.message, variant: 'error' })
+  }
+}
 
 function retryClustering() {
   const id = imageId.value
