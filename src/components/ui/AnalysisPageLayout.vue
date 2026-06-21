@@ -11,10 +11,10 @@
           <h1 class="text-2xl font-bold text-foreground">{{ title }}</h1>
           <button
             v-if="slots.explanation"
-            class="inline-flex items-center gap-1 rounded-md border border-sky-300 bg-white px-2 py-0.5 text-xs font-medium text-sky-500 transition-colors hover:bg-sky-50"
+            class="inline-flex items-center gap-1.5 rounded-md border border-sky-300 bg-white px-3 py-1 text-sm font-medium text-sky-500 transition-colors hover:bg-sky-50"
             @click="showExplanation = true"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
             </svg>
