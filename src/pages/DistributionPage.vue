@@ -30,6 +30,7 @@
               </SectionLabel>
               <DownloadButton
                 v-if="displayedResult"
+                :disabled="isExporting"
                 @click="downloadColorBubble"
               />
             </div>
@@ -90,9 +91,9 @@ import type { ExplanationSection } from '@/components/ui'
 import { ClusterRatioBar } from '@/features/color-cluster'
 import { isAnalysisError } from '@/types/analysis'
 import { useImageStore } from '@/composables/useImageStore'
-import { useToast } from '@/composables/useToast'
+import { useAnalysisPngExport } from '@/composables/useAnalysisPngExport'
 import { exportSvgAsPng } from '@/infrastructure/pngExport'
-import { buildExportFileName, EXPORT_SUFFIX } from '@/domain/exportFileName'
+import { EXPORT_SUFFIX } from '@/domain/exportFileName'
 
 const ClusterBubbleChart = defineAsyncComponent(() =>
   import('@/features/color-cluster/ClusterBubbleChart.vue'),
@@ -104,23 +105,17 @@ const MIN_MANUAL_PALETTE = 2
 const MAX_PALETTE = 60
 
 const { images, selectedImage, getAnalysis, retryAnalysis } = useImageStore()
-const { toast } = useToast()
+const { exportPng, isExporting } = useAnalysisPngExport()
 
 /** カラーバブルチャート（PNG エクスポート用の SVG 取得に使用） */
 const bubbleChartRef = ref<{ getSvgElement: () => SVGSVGElement | null } | null>(null)
 
 /** カラーバブルを PNG として保存する */
-async function downloadColorBubble() {
-  const svg = bubbleChartRef.value?.getSvgElement()
-  const fileName = selectedImage.value?.fileName
-  if (!svg || !fileName) return
-  const result = await exportSvgAsPng(
-    svg,
-    buildExportFileName(fileName, EXPORT_SUFFIX.colorBubble),
-  )
-  if (result.isFailure()) {
-    toast({ title: 'ダウンロードに失敗しました', description: result.error.message, variant: 'error' })
-  }
+function downloadColorBubble() {
+  exportPng(EXPORT_SUFFIX.colorBubble, (filename) => {
+    const svg = bubbleChartRef.value?.getSvgElement()
+    return svg ? exportSvgAsPng(svg, filename) : null
+  })
 }
 
 function retryClustering() {

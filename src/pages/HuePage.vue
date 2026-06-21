@@ -39,7 +39,7 @@
         <!-- 分析タイトル + PNG ダウンロード（オーバーレイ） -->
         <div class="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-2">
           <span class="rounded-lg border border-white/20 bg-black/40 px-3 py-1 text-sm font-semibold text-white/90 backdrop-blur-sm">色相3D</span>
-          <DownloadButton variant="overlay" @click="downloadHue3d" />
+          <DownloadButton variant="overlay" :disabled="isExporting" @click="downloadHue3d" />
         </div>
         <!-- 有彩色ピクセルなしオーバーレイ -->
         <div
@@ -81,9 +81,9 @@ import { LightnessBandToggle } from '@/features/hue-analysis'
 import { isAnalysisError } from '@/types/analysis'
 import type { HueAnalysisResult } from '@/types/hueAnalysis'
 import { useImageStore } from '@/composables/useImageStore'
-import { useToast } from '@/composables/useToast'
+import { useAnalysisPngExport } from '@/composables/useAnalysisPngExport'
 import { exportCanvasAsPng } from '@/infrastructure/pngExport'
-import { buildExportFileName, EXPORT_SUFFIX } from '@/domain/exportFileName'
+import { EXPORT_SUFFIX } from '@/domain/exportFileName'
 
 const HueTerrainChart = defineAsyncComponent(() =>
   import('@/features/hue-analysis/HueTerrainChart.vue'),
@@ -93,23 +93,17 @@ const LightnessBandPreview = defineAsyncComponent(() =>
 )
 
 const { selectedImage, getAnalysis, retryAnalysis } = useImageStore()
-const { toast } = useToast()
+const { exportPng, isExporting } = useAnalysisPngExport()
 
 /** 色相3Dチャート（PNG エクスポート用の Canvas 取得に使用） */
 const hueChartRef = ref<{ captureCanvas: () => HTMLCanvasElement | null } | null>(null)
 
 /** 色相3Dを PNG として保存する */
-async function downloadHue3d() {
-  const canvas = hueChartRef.value?.captureCanvas()
-  const fileName = selectedImage.value?.fileName
-  if (!canvas || !fileName) return
-  const result = await exportCanvasAsPng(
-    canvas,
-    buildExportFileName(fileName, EXPORT_SUFFIX.hue3d),
-  )
-  if (result.isFailure()) {
-    toast({ title: 'ダウンロードに失敗しました', description: result.error.message, variant: 'error' })
-  }
+function downloadHue3d() {
+  exportPng(EXPORT_SUFFIX.hue3d, (filename) => {
+    const canvas = hueChartRef.value?.captureCanvas()
+    return canvas ? exportCanvasAsPng(canvas, filename) : null
+  })
 }
 
 const explanationSections: ExplanationSection[] = [

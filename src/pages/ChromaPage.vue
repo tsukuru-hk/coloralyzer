@@ -29,6 +29,7 @@
             </SectionLabel>
             <DownloadButton
               v-if="chromaMapResult"
+              :disabled="isExporting"
               @click="downloadChromaMap"
             />
           </div>
@@ -69,28 +70,20 @@ import { Legend, InfoTooltip, Toggle, AnalysisSpinner, AnalysisErrorCard, Explan
 import type { ExplanationSection } from '@/components/ui'
 import { ChromaMapPanel, ChromaHistogramPanel } from '@/features/grayscale-map'
 import { useAnalysisResult } from '@/composables/useAnalysisResult'
-import { useImageStore } from '@/composables/useImageStore'
-import { useToast } from '@/composables/useToast'
+import { useAnalysisPngExport } from '@/composables/useAnalysisPngExport'
 import { exportImageDataAsPng } from '@/infrastructure/pngExport'
-import { buildExportFileName, EXPORT_SUFFIX } from '@/domain/exportFileName'
+import { EXPORT_SUFFIX } from '@/domain/exportFileName'
 
-const { selectedImage } = useImageStore()
-const { toast } = useToast()
+const { exportPng, isExporting } = useAnalysisPngExport()
 
 const chromaLogScale = ref(false)
 
 /** 彩度グレースケールを PNG として保存する */
-async function downloadChromaMap() {
-  const data = chromaMapResult.value
-  const fileName = selectedImage.value?.fileName
-  if (!data || !fileName) return
-  const result = await exportImageDataAsPng(
-    data,
-    buildExportFileName(fileName, EXPORT_SUFFIX.chromaGrayscale),
-  )
-  if (result.isFailure()) {
-    toast({ title: 'ダウンロードに失敗しました', description: result.error.message, variant: 'error' })
-  }
+function downloadChromaMap() {
+  exportPng(EXPORT_SUFFIX.chromaGrayscale, (filename) => {
+    const data = chromaMapResult.value
+    return data ? exportImageDataAsPng(data, filename) : null
+  })
 }
 
 const {

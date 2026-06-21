@@ -104,8 +104,10 @@ export async function exportSvgAsPng(
 
   const img = new Image()
   const loaded = await new Promise<boolean>((resolve) => {
-    img.onload = () => resolve(true)
-    img.onerror = () => resolve(false)
+    // onload/onerror のどちらも発火しない異常時に備えてタイムアウトで打ち切る
+    const timer = setTimeout(() => resolve(false), 10000)
+    img.onload = () => { clearTimeout(timer); resolve(true) }
+    img.onerror = () => { clearTimeout(timer); resolve(false) }
     img.src = url
   })
   URL.revokeObjectURL(url)

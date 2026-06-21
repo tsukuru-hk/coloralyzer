@@ -49,7 +49,7 @@
         <!-- 分析タイトル + PNG ダウンロード（オーバーレイ） -->
         <div class="absolute left-1/2 top-3 z-10 flex -translate-x-1/2 items-center gap-2">
           <span class="rounded-lg border border-white/20 bg-black/40 px-3 py-1 text-sm font-semibold text-white/90 backdrop-blur-sm">3Dガマット</span>
-          <DownloadButton variant="overlay" @click="downloadGamut3d" />
+          <DownloadButton variant="overlay" :disabled="isExporting" @click="downloadGamut3d" />
         </div>
       </template>
       <AnalysisSpinner v-else />
@@ -65,9 +65,10 @@ import GamutBrushOverlay from '@/features/gamut-3d/GamutBrushOverlay.vue'
 import ImageCanvas from '@/features/image-analysis/ImageCanvas.vue'
 import { useImageStore } from '@/composables/useImageStore'
 import { useAnalysisResult } from '@/composables/useAnalysisResult'
+import { useAnalysisPngExport } from '@/composables/useAnalysisPngExport'
 import { useToast } from '@/composables/useToast'
 import { exportCanvasAsPng } from '@/infrastructure/pngExport'
-import { buildExportFileName, EXPORT_SUFFIX } from '@/domain/exportFileName'
+import { EXPORT_SUFFIX } from '@/domain/exportFileName'
 import {
   useGamutBrush,
   MAX_BRUSH_POINTS,
@@ -79,22 +80,17 @@ const GamutScene = defineAsyncComponent(() =>
 
 const { selectedImage, images } = useImageStore()
 const { toast } = useToast()
+const { exportPng, isExporting } = useAnalysisPngExport()
 
 /** 3Dガマットシーン（PNG エクスポート用の Canvas 取得に使用） */
 const gamutSceneRef = ref<{ captureCanvas: () => HTMLCanvasElement | null } | null>(null)
 
 /** 3Dガマットを PNG として保存する */
-async function downloadGamut3d() {
-  const canvas = gamutSceneRef.value?.captureCanvas()
-  const fileName = selectedImage.value?.fileName
-  if (!canvas || !fileName) return
-  const result = await exportCanvasAsPng(
-    canvas,
-    buildExportFileName(fileName, EXPORT_SUFFIX.gamut3d),
-  )
-  if (result.isFailure()) {
-    toast({ title: 'ダウンロードに失敗しました', description: result.error.message, variant: 'error' })
-  }
+function downloadGamut3d() {
+  exportPng(EXPORT_SUFFIX.gamut3d, (filename) => {
+    const canvas = gamutSceneRef.value?.captureCanvas()
+    return canvas ? exportCanvasAsPng(canvas, filename) : null
+  })
 }
 
 const {

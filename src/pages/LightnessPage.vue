@@ -29,6 +29,7 @@
             </SectionLabel>
             <DownloadButton
               v-if="lightnessMapResult"
+              :disabled="isExporting"
               @click="downloadLightnessMap"
             />
           </div>
@@ -77,28 +78,20 @@ import { Legend, InfoTooltip, Toggle, AnalysisErrorCard, AnalysisSpinner, Explan
 import type { ExplanationSection } from '@/components/ui'
 import { LightnessMapPanel, LightnessHistogramPanel, LightnessDistributionBar } from '@/features/lightness-map'
 import { useAnalysisResult } from '@/composables/useAnalysisResult'
-import { useImageStore } from '@/composables/useImageStore'
-import { useToast } from '@/composables/useToast'
+import { useAnalysisPngExport } from '@/composables/useAnalysisPngExport'
 import { exportImageDataAsPng } from '@/infrastructure/pngExport'
-import { buildExportFileName, EXPORT_SUFFIX } from '@/domain/exportFileName'
+import { EXPORT_SUFFIX } from '@/domain/exportFileName'
 
-const { selectedImage } = useImageStore()
-const { toast } = useToast()
+const { exportPng, isExporting } = useAnalysisPngExport()
 
 const lightnessLogScale = ref(false)
 
 /** 明度グレースケールを PNG として保存する */
-async function downloadLightnessMap() {
-  const data = lightnessMapResult.value
-  const fileName = selectedImage.value?.fileName
-  if (!data || !fileName) return
-  const result = await exportImageDataAsPng(
-    data,
-    buildExportFileName(fileName, EXPORT_SUFFIX.lightnessGrayscale),
-  )
-  if (result.isFailure()) {
-    toast({ title: 'ダウンロードに失敗しました', description: result.error.message, variant: 'error' })
-  }
+function downloadLightnessMap() {
+  exportPng(EXPORT_SUFFIX.lightnessGrayscale, (filename) => {
+    const data = lightnessMapResult.value
+    return data ? exportImageDataAsPng(data, filename) : null
+  })
 }
 
 const {
