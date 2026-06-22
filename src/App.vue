@@ -20,7 +20,23 @@
         <router-view />
       </ErrorBoundary>
       <footer class="mt-12 pb-4 text-center text-xs text-muted-foreground">
-        © 2026 Coloralyzer. All rights reserved.
+        <div class="flex items-center justify-center gap-1.5">
+          <span>作者：橋本つくる</span>
+          <a
+            href="https://x.com/hasshi_design"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-1 rounded transition-colors hover:text-foreground"
+            aria-label="作者の X（@hasshi_design）を開く"
+          >
+            <!-- X（旧 Twitter）ブランドマーク -->
+            <svg viewBox="0 0 24 24" class="h-3 w-3" fill="currentColor" aria-hidden="true">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.65l-5.214-6.817-5.967 6.817H1.69l7.73-8.835L1.254 2.25h6.82l4.713 6.231 5.457-6.231zm-1.16 17.52h1.833L7.084 4.126H5.117l11.967 15.644z" />
+            </svg>
+            <span>@hasshi_design</span>
+          </a>
+        </div>
+        <div class="mt-1">© 2026 Coloralyzer. All rights reserved.</div>
       </footer>
     </main>
     <Toaster />
