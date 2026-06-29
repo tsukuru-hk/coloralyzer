@@ -8,6 +8,7 @@
       @clear-brush="$emit('clear-brush')"
     />
     <GamutViewControls v-if="showToolbar" @set-view="setViewPreset" />
+    <GamutWireframeSelector v-if="showToolbar" v-model="wireframeGamut" />
     <TresCanvas v-if="isMounted" :clear-color="'#a0a0a0'" :preserve-drawing-buffer="true">
       <TresPerspectiveCamera :position="initialCameraPosition" :fov="20" />
       <OrbitControls
@@ -27,7 +28,7 @@
 
         <GamutBrushCloud v-if="mode === 'brush'" :data="brushData" />
 
-        <GamutReferenceGrid :color-space="colorSpace" />
+        <GamutReferenceGrid :wireframe-gamut="wireframeGamut" />
       </TresGroup>
 
     </TresCanvas>
@@ -36,11 +37,11 @@
 
 <script setup lang="ts">
 import { ref, shallowRef, onMounted, onBeforeUnmount, watch } from 'vue'
+import type { WireframeGamut } from '@/domain/colorSpace'
 import { TresCanvas } from '@tresjs/core'
 import { OrbitControls } from '@tresjs/cientos'
 import type { Camera, Group, Vector3 } from 'three'
 import type { GamutPointCloudData } from '@/types/analysis'
-import type { ColorSpace } from '@/domain/colorSpace'
 import type { GamutMode } from './composables/useGamutBrush'
 import {
   DEFAULT_CAMERA_POSITION,
@@ -54,6 +55,7 @@ import GamutBrushCloud from './GamutBrushCloud.vue'
 import GamutReferenceGrid from './GamutReferenceGrid.vue'
 import GamutToolbar from './GamutToolbar.vue'
 import GamutViewControls from './GamutViewControls.vue'
+import GamutWireframeSelector from './GamutWireframeSelector.vue'
 
 /** スピンの総尺（秒） */
 const SPIN_DURATION = 2.0
@@ -62,7 +64,6 @@ const SPIN_ANGLE = Math.PI * 2
 
 const props = withDefaults(defineProps<{
   pointCloudData: GamutPointCloudData | null
-  colorSpace?: ColorSpace
   mode: GamutMode
   brushData: GamutPointCloudData
   /** ツールバー（自動/手動切替）を表示するか */
@@ -70,7 +71,6 @@ const props = withDefaults(defineProps<{
   /** 再マウントをまたいでカメラアングルを保持するか（画像タブ切替時の比較用） */
   persistCamera?: boolean
 }>(), {
-  colorSpace: 'srgb',
   showToolbar: true,
   persistCamera: false,
 })
@@ -79,6 +79,8 @@ defineEmits<{
   'set-mode': [mode: GamutMode]
   'clear-brush': []
 }>()
+
+const wireframeGamut = ref<WireframeGamut>('srgb')
 
 const isMounted = ref(false)
 onMounted(() => { isMounted.value = true })

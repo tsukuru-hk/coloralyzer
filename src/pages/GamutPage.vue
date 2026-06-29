@@ -39,7 +39,6 @@
         <GamutScene
           ref="gamutSceneRef"
           :point-cloud-data="pointCloudResult"
-          :color-space="colorAwareImageData.colorSpace"
           :mode="mode"
           :brush-data="brushData"
           :persist-camera="true"

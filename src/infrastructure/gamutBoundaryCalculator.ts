@@ -3,7 +3,7 @@
  * Infrastructure: Culori の displayable / inGamut に依存。
  */
 import { displayable, inGamut } from 'culori'
-import type { ColorSpace } from '@/domain/colorSpace'
+import type { ColorSpace, WireframeGamut } from '@/domain/colorSpace'
 
 /** ガマット境界データ: L × H グリッドでの最大 Chroma 値 */
 export interface GamutBoundaryData {
@@ -17,8 +17,8 @@ export interface GamutBoundaryData {
 
 /** 二分探索の精度 */
 const CHROMA_PRECISION = 0.001
-/** 探索の上限 Chroma */
-const CHROMA_UPPER_BOUND = 0.4
+/** 探索の上限 Chroma（Rec.2020 のグリーンで約 0.468 に達するため余裕を持たせる） */
+const CHROMA_UPPER_BOUND = 0.5
 
 /**
  * 指定色空間での (L, H) における最大 Chroma を二分探索で算出する。
@@ -50,15 +50,17 @@ function findMaxChroma(
  * @param hueSteps Hue の分割数 (デフォルト: 36)
  */
 export function computeGamutBoundary(
-  colorSpace: ColorSpace,
+  colorSpace: ColorSpace | WireframeGamut,
   lightnessSteps: number = 16,
   hueSteps: number = 36,
 ): GamutBoundaryData {
-  // sRGB → displayable(), display-p3 → inGamut('p3')
-  const isInGamut: (color: { mode: 'oklch'; l: number; c: number; h: number }) => boolean =
-    colorSpace === 'display-p3'
-      ? (inGamut('p3') as (color: { mode: 'oklch'; l: number; c: number; h: number }) => boolean)
-      : (c) => displayable(c)
+  type OklchColor = { mode: 'oklch'; l: number; c: number; h: number }
+  const gamutCheckers: Record<string, (color: OklchColor) => boolean> = {
+    'srgb': (c) => displayable(c),
+    'display-p3': inGamut('p3') as (color: OklchColor) => boolean,
+    'rec2020': inGamut('rec2020') as (color: OklchColor) => boolean,
+  }
+  const isInGamut = gamutCheckers[colorSpace] ?? gamutCheckers['srgb']!
 
   const lightnessLevels: number[] = []
   for (let li = 0; li <= lightnessSteps; li++) {

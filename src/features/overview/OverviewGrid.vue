@@ -44,7 +44,6 @@
         <div v-else-if="gamutData && row2Visible" class="relative h-[320px] overflow-hidden rounded-lg">
           <GamutScene
             :point-cloud-data="gamutData"
-            :color-space="colorAwareImageData.colorSpace"
             mode="bulk"
             :brush-data="EMPTY_BRUSH_DATA"
             :show-toolbar="false"

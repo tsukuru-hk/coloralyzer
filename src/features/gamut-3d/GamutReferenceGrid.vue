@@ -20,12 +20,12 @@ import {
 import { oklch, formatHex } from 'culori'
 import { oklchToPosition, DEFAULT_GAMUT_SCALE } from '@/domain/oklchTo3d'
 import { computeGamutBoundary } from '@/infrastructure/gamutBoundaryCalculator'
-import type { ColorSpace } from '@/domain/colorSpace'
+import type { WireframeGamut } from '@/domain/colorSpace'
 
 const props = withDefaults(defineProps<{
-  colorSpace?: ColorSpace
+  wireframeGamut?: WireframeGamut
 }>(), {
-  colorSpace: 'srgb',
+  wireframeGamut: 'srgb',
 })
 
 /** 境界の Lightness 分割数 */
@@ -48,9 +48,9 @@ function oklchToHex(l: number, c: number, h: number): string | null {
   return formatHex(color)
 }
 
-function buildGroup(colorSpace: ColorSpace): Group {
+function buildGroup(wireframeGamut: WireframeGamut): Group {
   const root = new Group()
-  const boundary = computeGamutBoundary(colorSpace, L_STEPS, H_STEPS)
+  const boundary = computeGamutBoundary(wireframeGamut, L_STEPS, H_STEPS)
 
   const linePositions: number[] = []
   const lineColors: number[] = []
@@ -171,9 +171,9 @@ function disposeGroupObj(g: Group | null) {
   })
 }
 
-watch(toRef(props, 'colorSpace'), (cs) => {
+watch(toRef(props, 'wireframeGamut'), (wg) => {
   disposeGroupObj(group.value)
-  group.value = buildGroup(cs)
+  group.value = buildGroup(wg)
 }, { immediate: true })
 
 onScopeDispose(() => {
